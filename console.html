@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>聚場總控台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=LXGW+WenKai+TC:wght@700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/brand.css">
+<style>
+/* Layout: 頂部墨色標題列 → 數據磚 → 成長圖＋最新使用者 → 全部社群表格 */
+main { padding-block: 24px 40px; min-height: 60vh }
+.c-top { background: var(--ink); color: var(--on-ink) }
+.c-top .wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 60px; padding-block: 8px }
+.c-top .brand { color: var(--on-ink) }
+.c-top .tag { font: 700 12px var(--f-num); letter-spacing: .12em; color: var(--sun); border: 1px solid rgba(255,201,51,.5); border-radius: 999px; padding: 2px 10px }
+.c-top .btn { background: transparent; color: var(--on-ink); border-color: rgba(255,255,255,.3) }
+.c-top .btn:hover { border-color: var(--on-ink) }
+.c-top .chip { background: rgba(255,255,255,.12); color: var(--on-ink); border: 0 }
+.head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px }
+.head h1 { margin: 0; font-family: var(--f-display); font-size: clamp(26px, 4vw, 32px) }
+.head p { margin: 2px 0 0; color: var(--muted) }
+.split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start }
+@media (max-width: 880px) { .split { grid-template-columns: minmax(0, 1fr) } }
+.card h2 { margin: 0 0 2px; font-size: 17px }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 26px 0 12px }
+.toolbar h2 { margin: 0 auto 0 0; font-size: 20px }
+.search { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 7px 14px; width: min(240px, 100%) }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; flex-wrap: wrap }
+.seg button { border: 0; background: var(--surface); padding: 6px 13px; cursor: pointer; font-size: 13px }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink) }
+.cname { display: flex; align-items: center; gap: 10px; min-width: 200px }
+.cname .sw { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; flex: none }
+.cname a { font-weight: 700; text-decoration: none }
+.cname a:hover { text-decoration: underline }
+.users li { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line) }
+.users li:last-child { border-bottom: 0 }
+.users ul { list-style: none; margin: 0; padding: 0 }
+.users .who { flex: 1; min-width: 0 }
+.users .who div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.deny { max-width: 460px; margin: 40px auto; text-align: center }
+th.sortable button { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; padding: 0 }
+th.sortable button[aria-pressed="true"] { color: var(--ink); font-weight: 700 }
+</style>
+</head>
+<body>
+
+<header class="c-top"><div class="wrap" id="topbar"></div></header>
+<main class="wrap" id="app"><div class="loading">載入總控台…</div></main>
+<footer class="foot"><div class="wrap" id="footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/changelog.js"></script>
+<script src="assets/demo-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+const { api, esc, ago, fmtDate, avatar, toast, barChart } = JC;
+const S = { user: null, ui: { filter: 'all', sort: 'created', q: '' }, data: null };
+
+function renderTop() {
+  document.getElementById('topbar').innerHTML = `${JC.logo()}<span class="tag">CONSOLE</span><span class="spacer"></span>
+    ${api.mode === 'demo' ? '<span class="chip">示範模式</span>' : ''}
+    <a class="btn sm" href="app.html">回到社群</a>
+    ${S.user ? `<span class="user-chip">${avatar(S.user, null, 'sm')}<span class="name">${esc(S.user.name)}</span></span>` : ''}`;
+  document.getElementById('footer').innerHTML = `<span>${esc(JC.CONFIG.APP_NAME)} 總控台</span><span>前端 ${JC.versionTag()}</span>
+    ${S.data ? `<span>資料庫 v${esc(S.data.ov.db_version || '?')}</span>` : ''}<span class="spacer"></span><a href="./">品牌首頁</a><a href="changelog.html">版本紀錄</a>`;
+}
+
+async function load() {
+  const [ov, comms, users] = await Promise.all([api.platformOverview(), api.adminCommunities(), api.adminRecentUsers(8)]);
+  S.data = { ov, comms, users };
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const { ov, comms, users } = S.data;
+  const needDb = JC.CONFIG.DB_VERSION_REQUIRED, dbOk = !JC.verLt(ov.db_version || '0', needDb);
+  const weekly = (ov.weekly || []).map(w => { const [, m, d] = w.week.split('-'); return { label: `${+m}/${+d}`, value: w.communities, tip: `${+m}/${+d} 那週：${w.communities} 個新社群、${w.users} 位新使用者` }; });
+  const weeklyU = (ov.weekly || []).map(w => { const [, m, d] = w.week.split('-'); return { label: `${+m}/${+d}`, value: w.users, tip: `${+m}/${+d} 那週：${w.users} 位新使用者` }; });
+  const st = c => `${c.status === 'suspended' ? '<span class="chip coral">已停權</span>' : '<span class="chip mint">正常</span>'}${c.featured ? ' <span class="chip sun">精選</span>' : ''}${c.is_private ? ' <span class="chip grape">私密</span>' : ''}`;
+  const q = S.ui.q.trim().toLowerCase();
+  let list = comms.filter(c => (S.ui.filter === 'all' || (S.ui.filter === 'suspended' && c.status === 'suspended') || (S.ui.filter === 'featured' && c.featured) || (S.ui.filter === 'private' && c.is_private) || (S.ui.filter === 'pending' && c.pending_count > 0))
+    && (!q || `${c.name} ${c.slug} ${c.owner_name} ${c.owner_email}`.toLowerCase().includes(q)));
+  const sorters = { created: (a, b) => b.created_at.localeCompare(a.created_at), members: (a, b) => b.member_count - a.member_count, active: (a, b) => (b.last_activity || '').localeCompare(a.last_activity || ''), posts: (a, b) => b.posts_7d - a.posts_7d };
+  list = list.slice().sort(sorters[S.ui.sort]);
+  const sortBtn = (k, l) => `<button data-act="sort" data-k="${k}" aria-pressed="${S.ui.sort === k}">${l}${S.ui.sort === k ? ' ↓' : ''}</button>`;
+
+  app.innerHTML = `
+    <div class="head"><div><h1>總控台</h1><p>整個聚場平台的使用狀況，以及所有社群的管理。</p></div>
+      <button class="btn sm" data-act="reload">重新整理</button></div>
+    ${dbOk ? '' : `<p class="banner warn">資料庫是 v${esc(ov.db_version)}，前端需要 v${esc(needDb)}。請到 Supabase 執行對應的升級 SQL。</p>`}
+    <div class="tiles">
+      <div class="tile"><div class="k">使用者</div><div class="v">${ov.users}</div><div class="d">7 天新增 ${ov.users_7d} 位</div></div>
+      <div class="tile"><div class="k">社群</div><div class="v">${ov.communities}</div><div class="d">7 天新開 ${ov.communities_7d} 個</div></div>
+      <div class="tile"><div class="k">7 天貼文</div><div class="v">${ov.posts_7d}</div><div class="d">全平台</div></div>
+      <div class="tile ${ov.pending ? 'alert' : ''}"><div class="k">待審核申請</div><div class="v">${ov.pending}</div><div class="d">各社群加總，由社群主審核</div></div>
+    </div>
+    <div class="split">
+      <div class="card"><div class="row" style="justify-content:space-between"><div><h2>每週成長（近 8 週）</h2><p class="small muted" style="margin:0">滑過長條看當週數字</p></div>
+        <div class="seg" role="group" aria-label="切換指標"><button data-act="metric" data-k="c" aria-pressed="${S.ui.metric !== 'u'}">新社群</button><button data-act="metric" data-k="u" aria-pressed="${S.ui.metric === 'u'}">新使用者</button></div></div>
+        <div style="margin-top:10px">${barChart(S.ui.metric === 'u' ? weeklyU : weekly, S.ui.metric === 'u' ? '每週新使用者' : '每週新社群')}</div></div>
+      <div class="card users"><h2>最新註冊的使用者</h2><ul>${users.map(u => `<li>${avatar({ id: u.id, name: u.display_name }, null, 'sm')}
+        <div class="who"><div><b>${esc(u.display_name)}</b></div><div class="small muted">${esc(u.email || '')}</div></div>
+        <div class="small muted" style="text-align:right">${ago(u.created_at)}<br>加入 ${u.joined_count} · 開設 ${u.owned_count}</div></li>`).join('')}</ul></div>
+    </div>
+    <div class="toolbar"><h2>所有社群（${comms.length}）</h2>
+      <div class="seg" role="group" aria-label="篩選">${[['all', '全部'], ['featured', '精選'], ['private', '私密'], ['pending', '有待審核'], ['suspended', '已停權']].map(([k, l]) => `<button data-act="filter" data-k="${k}" aria-pressed="${S.ui.filter === k}">${l}</button>`).join('')}</div>
+      <input class="search" id="q" type="search" placeholder="搜尋社群、擁有者、Email" value="${esc(S.ui.q)}" aria-label="搜尋社群"></div>
+    <div class="card" style="padding:0;overflow:hidden"><div class="scroll"><table class="t">
+      <thead><tr><th>社群</th><th>擁有者</th><th>狀態</th><th class="n sortable">${sortBtn('members', '成員')}</th><th class="n">待審</th><th class="n sortable">${sortBtn('posts', '7 天貼文')}</th>
+        <th class="sortable">${sortBtn('active', '最後活動')}</th><th class="sortable">${sortBtn('created', '建立')}</th><th>操作</th></tr></thead>
+      <tbody>${list.map(c => `<tr>
+        <td><div class="cname"><span class="sw" style="background:${esc(c.theme_color || '#FFC933')}">${esc(c.name.charAt(0))}</span><div><a href="app.html#c--${esc(c.slug)}--about">${esc(c.name)}</a><div class="small muted">${esc(c.category || '其他')} · ${esc(c.slug)}</div></div></div></td>
+        <td><div>${esc(c.owner_name)}</div><div class="small muted">${esc(c.owner_email || '')}</div></td>
+        <td>${st(c)}</td><td class="n">${c.member_count}</td><td class="n">${c.pending_count || '–'}</td><td class="n">${c.posts_7d}</td>
+        <td>${c.last_activity ? ago(c.last_activity) : '–'}</td><td>${fmtDate(c.created_at)}</td>
+        <td><div class="row" style="gap:6px;flex-wrap:nowrap">
+          <button class="btn sm" data-act="feature" data-id="${c.id}" data-v="${!c.featured}">${c.featured ? '取消精選' : '設為精選'}</button>
+          ${c.status === 'suspended' ? `<button class="btn sm" data-act="status" data-id="${c.id}" data-v="active">恢復</button>`
+            : `<button class="btn sm danger" data-act="status" data-id="${c.id}" data-v="suspended">${S.ui.confirm === c.id ? '確定停權？' : '停權'}</button>`}</div></td>
+      </tr>`).join('') || `<tr><td colspan="9" class="empty">沒有符合的社群</td></tr>`}</tbody></table></div></div>
+    <p class="small muted" style="margin-top:10px">停權的社群不會出現在探索頁，一般人也打不開；社群主仍看得到，並會看到「已被平台停權」的標示。精選社群會排在探索頁最前面。</p>`;
+}
+
+async function boot() {
+  const app = document.getElementById('app');
+  try {
+    S.user = await api.getUser(); renderTop();
+    if (!S.user) { app.innerHTML = `<div class="card deny"><h1 style="font-family:var(--f-display);margin-top:0">請先登入</h1><p class="muted">總控台只開放給平台管理員。</p><a class="btn primary" href="app.html">前往登入</a></div>`; return; }
+    if (!(await api.isPlatformAdmin())) { app.innerHTML = `<div class="card deny"><h1 style="font-family:var(--f-display);margin-top:0">你沒有總控台權限</h1><p class="muted">總控台只開放給平台管理員。如果你是平台擁有者，請在 Supabase 把自己加進 platform_admins（說明在 002_v0.2.0.sql 最下面）。</p><a class="btn" href="app.html">回到社群</a></div>`; return; }
+    await load(); renderTop(); render();
+  } catch (e) { console.error(e); app.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p></div>`; }
+}
+
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const a = el.dataset.act;
+  if (a === 'filter') { S.ui.filter = el.dataset.k; return render(); }
+  if (a === 'sort') { S.ui.sort = el.dataset.k; return render(); }
+  if (a === 'metric') { S.ui.metric = el.dataset.k; return render(); }
+  if (a === 'reload') { await load(); render(); return toast('已更新'); }
+  try {
+    if (a === 'feature') { await api.adminSetCommunity(el.dataset.id, { featured: el.dataset.v === 'true' }); toast(el.dataset.v === 'true' ? '已設為精選' : '已取消精選'); }
+    if (a === 'status') {
+      if (el.dataset.v === 'suspended' && S.ui.confirm !== el.dataset.id) { S.ui.confirm = el.dataset.id; return render(); }
+      S.ui.confirm = null; await api.adminSetCommunity(el.dataset.id, { status: el.dataset.v }); toast(el.dataset.v === 'active' ? '已恢復社群' : '已停權社群');
+    }
+    await load(); render();
+  } catch (err) { toast(err.message); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id !== 'q') return;
+  S.ui.q = e.target.value; const pos = e.target.selectionStart; render();
+  const s = document.getElementById('q'); s.focus(); s.setSelectionRange(pos, pos);
+});
+boot();
+</script>
+
+</body>
+</html>

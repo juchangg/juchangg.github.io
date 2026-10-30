@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>聚場版本紀錄</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=LXGW+WenKai+TC:wght@700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/brand.css">
+<style>
+/* Layout: 單欄時間軸，左側版本號，右側內容 */
+main { padding-block: 32px 40px }
+.intro h1 { font-family: var(--f-display); font-size: clamp(28px, 4.5vw, 40px); margin: 0 0 6px }
+.intro p { color: var(--muted); margin: 0 0 30px; max-width: 40em }
+.rel { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; padding: 26px 0; border-top: 1px solid var(--line) }
+@media (max-width: 640px) { .rel { grid-template-columns: minmax(0, 1fr); gap: 8px } }
+.rel .v { font: 800 30px/1 var(--f-num) }
+.rel .d { color: var(--muted); font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums }
+.rel .cur { display: inline-block; margin-top: 8px }
+.rel h2 { margin: 0 0 10px; font-size: 20px }
+.grp { margin-top: 14px }
+.grp h3 { display: inline-block; margin: 0 0 6px; font-size: 13px; padding: 2px 10px; border-radius: 999px }
+.grp ul { margin: 0; padding-left: 20px }
+.grp li { margin: 3px 0 }
+.dbnote { margin-top: 14px; font-size: 14px; background: var(--surface-2); border-radius: var(--r-sm); padding: 10px 12px }
+.dbnote code { font-family: var(--f-num); background: var(--surface); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line) }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap"><a class="brand" href="./"><span class="mark" aria-hidden="true">聚</span><span>聚場</span></a><span class="crumb">／ 版本紀錄</span><span class="spacer"></span><a class="btn sm" href="app.html">我的社群</a></div></header>
+<main class="wrap">
+  <div class="intro"><h1>版本紀錄</h1><p>聚場每一次更新的內容。版本號的第二碼代表功能更新，第三碼代表錯誤修正。標示「資料庫升級」的版本，需要在 Supabase 執行對應的 SQL 檔。</p></div>
+  <div id="list"></div>
+</main>
+<footer class="foot"><div class="wrap" id="footer"></div></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/changelog.js"></script>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tone = { '新增': 'background:var(--sun-soft);color:var(--sun-ink)', '改進': 'background:var(--mint-soft);color:var(--mint-ink)', '修正': 'background:var(--grape-soft);color:var(--grape-ink)', '安全性': 'background:var(--coral-soft);color:var(--coral-ink)' };
+document.getElementById('list').innerHTML = window.JC_CHANGELOG.map((r, i) => `<article class="rel" id="v${r.version.replace(/\./g, '-')}">
+  <div><div class="v">v${esc(r.version)}</div><div class="d">${esc(r.date)}</div>${i === 0 ? '<span class="chip sun cur">目前版本</span>' : ''}</div>
+  <div><h2>${esc(r.title)}</h2>
+    ${r.groups.map(([g, items]) => `<div class="grp"><h3 style="${tone[g] || ''}">${esc(g)}</h3><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}
+    ${r.db ? `<div class="dbnote">資料庫升級：在 Supabase SQL Editor 執行 <code>${esc(r.db)}</code></div>` : ''}</div>
+</article>`).join('');
+document.getElementById('footer').innerHTML = `<span>© ${new Date().getFullYear()} 聚場</span><a class="ver" href="changelog.html">v${esc(window.JC_VERSION)}</a><span class="spacer"></span><a href="./">品牌首頁</a><a href="app.html">我的社群</a>`;
+</script>
+
+</body>
+</html>

@@ -1,959 +1,296 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>聚場</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="聚場：免費開設你自己的社群。動態牆、課程、行事曆、按讚升等排行榜，把粉絲變成你自己的私域社群。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/brand.css">
 <style>
-/* Layout: 頂部導覽 + 社群分頁；動態牆為「主欄 + 側欄」兩欄，手機改單欄 */
-:root{
-  --bg:#F2F4F1; --surface:#FFFFFF; --surface-2:#F7F9F6; --ink:#17201C; --muted:#5B6863; --line:#DAE1DC;
-  --accent:#0D6A5B; --accent-ink:#FFFFFF; --accent-soft:#DCEFE9;
-  --gold:#A86E12; --gold-soft:#F5E8CF; --danger:#B42318; --danger-soft:#FBE3DF;
-  --f-display:"Bricolage Grotesque","Noto Sans TC",system-ui,sans-serif;
-  --f-body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
-  --r:10px;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0F1412; --surface:#161D1A; --surface-2:#1B2420; --ink:#E6ECE9; --muted:#95A49E; --line:#29342F;
-  --accent:#43B7A1; --accent-ink:#04201A; --accent-soft:#16342D;
-  --gold:#E2AA4C; --gold-soft:#3B2E17; --danger:#F08A7C; --danger-soft:#3A1D19; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0F1412; --surface:#161D1A; --surface-2:#1B2420; --ink:#E6ECE9; --muted:#95A49E; --line:#29342F;
-  --accent:#43B7A1; --accent-ink:#04201A; --accent-soft:#16342D;
-  --gold:#E2AA4C; --gold-soft:#3B2E17; --danger:#F08A7C; --danger-soft:#3A1D19; color-scheme:dark}
-*{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
-a{color:var(--accent)}
-button,input,textarea,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.top .wrap{display:flex;align-items:center;gap:12px;min-height:58px;flex-wrap:wrap;padding-block:6px}
-.brand{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.02em;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:8px}
-.brand i{width:22px;height:22px;border-radius:6px;background:var(--accent);display:inline-grid;place-items:center;color:var(--accent-ink);font-style:normal;font-size:13px}
-.crumb{color:var(--muted);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.spacer{flex:1}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--gold-soft);color:var(--gold);font-weight:500;letter-spacing:.03em}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap}
-.btn:hover{border-color:var(--muted)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.primary:hover{filter:brightness(1.07)}
-.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
-.btn.ghost:hover{color:var(--ink);background:var(--surface-2)}
-.btn.sm{padding:4px 10px;font-size:13px}
-.btn.danger{color:var(--danger)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-main{padding-block:22px 60px}
-.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line);margin-bottom:20px}
-.tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
-.tabs a.off{opacity:.45;pointer-events:none}
-.chead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.chead h1{font-size:26px;margin:0;line-height:1.25;text-wrap:balance}
-.chead p{margin:2px 0 0;color:var(--muted)}
-h2{font-size:18px;margin:0 0 12px;text-wrap:balance}
-h3{font-size:16px;margin:0}
-.grid2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
-@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
-.stack{display:flex;flex-direction:column;gap:12px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
-.muted{color:var(--muted)}
-.small{font-size:13px}
-.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.av{position:relative;flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff}
-.av.sm{width:30px;height:30px;font-size:13px}
-.lv{position:absolute;right:-6px;bottom:-4px;min-width:20px;height:18px;padding:0 4px;border-radius:5px;background:var(--gold);color:var(--surface);font:700 11px/18px var(--f-display);text-align:center;border:2px solid var(--surface)}
-.post{cursor:pointer;transition:border-color .15s}
-.post:hover{border-color:var(--muted)}
-.post h3{margin:8px 0 4px;font-size:17px}
-.post .ex{color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0}
-.meta{font-size:13px;color:var(--muted)}
-.tag{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
-.pin{font-size:12px;color:var(--gold);font-weight:700}
-.acts{display:flex;gap:4px;margin-top:10px;margin-left:-8px}
-.like{display:inline-flex;align-items:center;gap:6px;border:0;background:none;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:6px;font-size:14px}
-.like:hover{background:var(--surface-2);color:var(--ink)}
-.like.on{color:var(--accent);font-weight:700}
-.like svg{width:17px;height:17px}
-.filters{display:flex;flex-wrap:wrap;gap:6px}
-.filters button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px}
-.filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
-.composer-btn{width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 16px;color:var(--muted);cursor:text;display:flex;gap:12px;align-items:center}
-form.f{display:flex;flex-direction:column;gap:10px}
-.f label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;color:var(--muted)}
-.f input,.f textarea,.f select{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 11px;font-size:15px;width:100%}
-.f textarea{min-height:110px;resize:vertical}
-.f .inline{display:flex;gap:10px;flex-wrap:wrap}
-.f .inline>*{flex:1 1 160px}
-.f .check{flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
-.f .check input{width:auto}
-.err{background:var(--danger-soft);color:var(--danger);padding:8px 12px;border-radius:8px;font-size:14px}
-.prog{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
-.prog>span{display:block;height:100%;background:var(--accent)}
-.lb li{display:grid;grid-template-columns:28px 34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
-.lb li:last-child{border-bottom:0}
-.lb ol{list-style:none;margin:0;padding:0}
-.rank{font-family:var(--f-display);font-weight:700;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
-.rank.top{color:var(--gold)}
-.pts{font-family:var(--f-display);font-weight:700;font-variant-numeric:tabular-nums}
-.name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.ccard{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:inherit}
-.cover{aspect-ratio:16/7;max-width:100%;border-radius:8px;display:grid;place-items:center;font-family:var(--f-display);font-size:30px;font-weight:700;color:#fff;position:relative;overflow:hidden}
-.cover .lock{position:absolute;inset:0;background:rgba(10,16,14,.62);display:grid;place-items:center;font:500 14px var(--f-body);color:#fff;text-align:center;padding:8px}
-.course-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
-@media (max-width:860px){.course-layout{grid-template-columns:minmax(0,1fr)}}
-.mod{margin-bottom:14px}
-.mod h4{margin:0 0 6px;font-size:13px;color:var(--muted);letter-spacing:.06em;font-weight:700}
-.lesson-link{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:14px}
-.lesson-link:hover{background:var(--surface-2)}
-.lesson-link[aria-current="true"]{background:var(--accent-soft);font-weight:700}
-.dot{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--line)}
-.dot.done{background:var(--accent);border-color:var(--accent)}
-.lesson-body{white-space:pre-wrap}
-.video{display:flex;gap:12px;align-items:center;padding:14px;border-radius:8px;background:var(--surface-2);border:1px dashed var(--line);margin:12px 0}
-.vframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;max-width:100%}
-.ev{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:14px;align-items:start}
-@media (max-width:560px){.ev{grid-template-columns:56px minmax(0,1fr)}.ev>.ev-act{grid-column:1/-1}}
-.date{text-align:center;border:1px solid var(--line);border-radius:8px;padding:6px 0;background:var(--surface-2)}
-.date b{display:block;font-family:var(--f-display);font-size:24px;line-height:1.1}
-.date span{font-size:12px;color:var(--muted)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{border:0;background:var(--surface);padding:6px 14px;cursor:pointer;font-size:14px}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
-.ladder{width:100%;border-collapse:collapse;font-size:14px}
-.ladder th,.ladder td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-.ladder th{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.05em}
-.ladder td.num{font-variant-numeric:tabular-nums;font-family:var(--f-display)}
-.ladder tr.me{background:var(--accent-soft)}
-.scroll{overflow-x:auto}
-.overlay{position:fixed;inset:0;background:rgba(8,12,10,.55);z-index:20;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 24px max(12px,env(safe-area-inset-left,0px))}
-.modal{background:var(--surface);border-radius:12px;width:100%;max-width:720px;padding:22px;position:relative}
-.modal .x{position:absolute;right:12px;top:12px}
-.modal h2{font-size:22px;margin:10px 0 8px;padding-right:36px}
-.post-body{white-space:pre-wrap;margin:0 0 6px}
-.cmts{border-top:1px solid var(--line);margin-top:14px;padding-top:14px;display:flex;flex-direction:column;gap:14px}
-.cmt{display:flex;gap:10px}
-.cmt .bubble{background:var(--surface-2);border-radius:10px;padding:8px 12px;min-width:0}
-.cmt .bubble p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.reply{margin-left:40px}
-.empty{text-align:center;padding:36px 16px;color:var(--muted)}
-.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px}
-.hero h1{font-family:var(--f-display);font-size:clamp(26px,4vw,34px);margin:0;line-height:1.2;text-wrap:balance}
-.search{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;width:min(320px,100%)}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:999px;z-index:30;font-size:14px;max-width:calc(100% - 32px)}
-.admin-box{border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface-2)}
-.admin-box summary{cursor:pointer;font-weight:500;color:var(--accent)}
-.admin-box[open] summary{margin-bottom:10px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
-.kv dt{color:var(--muted)}.kv dd{margin:0}
-.loading{padding:60px 0;text-align:center;color:var(--muted)}
-@media (max-width:560px){.top .name,.crumb{display:none}.lb li{grid-template-columns:24px 30px minmax(0,1fr) auto}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Layout: 陽光黃滿版主視覺（左文案、右「按讚→加分→升級」示意）→ 白色內容段落交替 → 墨色收尾 CTA */
+body { background: var(--surface) }
+body::before { background: var(--sun) }
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--sun); transition: box-shadow .2s }
+.nav.scrolled { box-shadow: 0 1px 0 rgba(23,23,28,.12) }
+.nav .wrap { display: flex; align-items: center; gap: 18px; min-height: 64px; flex-wrap: wrap; padding-block: 8px }
+.nav .brand .mark { background: var(--ink); color: var(--sun) }
+.nav .links { display: flex; gap: 18px; font-size: 14px; font-weight: 500 }
+.nav .links a { text-decoration: none }
+.nav .links a:hover { text-decoration: underline }
+.nav .btn { border-color: var(--ink) }
+@media (max-width: 760px) { .nav .links { display: none } }
+
+.hero { background: var(--sun); overflow: hidden }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; padding-block: 40px 70px }
+@media (max-width: 880px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 28px 50px } }
+.eyebrow { font: 700 13px var(--f-num); letter-spacing: .14em; color: var(--ink-2) }
+.hero h1 { font-family: var(--f-display); font-size: clamp(40px, 7vw, 72px); line-height: 1.12; margin: 12px 0 18px; letter-spacing: .01em }
+.hero h1 em { font-style: normal; background: linear-gradient(transparent 62%, var(--surface) 62%, var(--surface) 92%, transparent 92%) }
+.hero .sub { font-size: clamp(16px, 2vw, 19px); color: var(--ink-2); max-width: 32em; margin: 0 0 26px }
+.hero .ctas { display: flex; gap: 12px; flex-wrap: wrap }
+.hero .note { margin-top: 16px; font-size: 13px; color: var(--ink-2); display: flex; gap: 16px; flex-wrap: wrap }
+.hero .note span::before { content: "✓ "; font-weight: 700 }
+
+/* 主視覺：按讚 → 加分 → 升級 */
+.loop { position: relative; display: grid; gap: 14px; max-width: 420px; justify-self: center; width: 100% }
+.mock { background: var(--surface); border-radius: 18px; padding: 16px 18px; box-shadow: 0 10px 30px rgba(23,23,28,.12), 0 1px 0 rgba(23,23,28,.06) }
+.mock .row { flex-wrap: nowrap }
+.mock h4 { margin: 10px 0 4px; font-size: 16px }
+.mock p { margin: 0; color: var(--muted); font-size: 14px }
+.likebtn { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 5px 12px; border-radius: 999px; background: var(--coral-soft); color: var(--coral-ink); font-weight: 700; font-size: 14px; border: 0; cursor: pointer }
+.likebtn svg { width: 16px; height: 16px }
+.plus { position: absolute; right: 22px; top: 96px; font: 800 26px var(--f-num); color: var(--coral-ink); animation: pop 3.2s ease-in-out infinite }
+@keyframes pop { 0%, 35% { opacity: 0; transform: translateY(8px) } 45%, 70% { opacity: 1; transform: translateY(-6px) } 85%, 100% { opacity: 0; transform: translateY(-16px) } }
+.mock.lvl { margin-left: 34px; display: flex; gap: 14px; align-items: center }
+.mock.lvl .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 6px }
+.mock.lvl .bar i { display: block; height: 100%; width: 72%; background: var(--sun); animation: fill 3.2s ease-in-out infinite }
+@keyframes fill { 0%, 40% { width: 72% } 60%, 100% { width: 86% } }
+.mock.rank { margin-right: 34px; font-size: 14px }
+.mock.rank ol { list-style: none; margin: 6px 0 0; padding: 0 }
+.mock.rank li { display: flex; gap: 10px; align-items: center; padding: 4px 0 }
+.mock.rank li b { margin-left: auto; font-family: var(--f-num) }
+.mock .medal { width: 22px; height: 22px; border-radius: 50%; background: var(--sun); display: grid; place-items: center; font: 700 12px var(--f-num) }
+
+section.s { padding-block: 72px }
+section.s.alt { background: var(--canvas) }
+.s-head { max-width: 680px; margin-bottom: 34px }
+.s-head .eyebrow { color: var(--sun-ink) }
+.s-head h2 { font-family: var(--f-display); font-size: clamp(28px, 4.4vw, 42px); margin: 8px 0 10px }
+.s-head p { color: var(--muted); font-size: 17px; margin: 0 }
+
+.pains { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px }
+.pain { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 10px }
+.pain .q { font-size: 17px; font-weight: 700; margin: 0 }
+.pain .q::before { content: "「"; color: var(--coral) } .pain .q::after { content: "」"; color: var(--coral) }
+.pain .a { margin: 0; color: var(--ink-2); padding-top: 10px; border-top: 1px dashed var(--line-strong) }
+
+.vs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-radius: var(--r); overflow: hidden; border: 1px solid var(--line) }
+.vs > div { padding: 22px 22px 8px }
+.vs .pub { background: var(--surface) }
+.vs .pri { background: var(--sun-soft) }
+.vs h3 { margin: 0 0 4px; font-size: 20px }
+.vs .sub { margin: 0 0 12px; font-size: 13px; color: var(--muted) }
+.vs dl { margin: 0 }
+.vs dt { font-size: 12px; color: var(--muted); letter-spacing: .06em; margin-top: 12px }
+.vs dd { margin: 2px 0 12px; font-weight: 500 }
+.vs .pri dd { color: var(--ink) }
+@media (max-width: 640px) { .vs { grid-template-columns: minmax(0, 1fr) } }
+
+.feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px }
+.feat { padding: 20px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line) }
+.feat .ic { width: 42px; height: 42px; border-radius: 12px; background: var(--sun-soft); display: grid; place-items: center; margin-bottom: 12px }
+.feat .ic svg { width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.feat h3 { margin: 0 0 6px; font-size: 17px }
+.feat p { margin: 0; color: var(--muted); font-size: 14px }
+
+.ladder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 34px; align-items: end }
+@media (max-width: 880px) { .ladder { grid-template-columns: minmax(0, 1fr) } }
+.stairs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; align-items: end; height: 260px }
+.stairs .st { background: var(--sun); border-radius: 8px 8px 0 0; position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 6px; min-height: 30px }
+.stairs .st b { font: 800 16px var(--f-num) }
+.stairs .st:nth-child(n+7) { background: var(--ink); color: var(--sun) }
+.stairs-axis { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-top: 6px; font: 500 11px var(--f-num); color: var(--muted); text-align: center; font-variant-numeric: tabular-nums }
+.rules { display: flex; flex-direction: column; gap: 14px }
+.rule { display: flex; gap: 14px; align-items: flex-start }
+.rule .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--sun); display: grid; place-items: center; font: 800 15px var(--f-num) }
+.rule h3 { margin: 4px 0 2px; font-size: 17px }
+.rule p { margin: 0; color: var(--muted) }
+
+.who { display: flex; flex-wrap: wrap; gap: 10px }
+.who span { padding: 10px 18px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 500 }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; counter-reset: s }
+.step { padding: 22px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); counter-increment: s }
+.step::before { content: counter(s); display: block; font: 800 44px/1 var(--f-num); color: var(--sun-hover); margin-bottom: 10px }
+.step h3 { margin: 0 0 4px; font-size: 18px }
+.step p { margin: 0; color: var(--muted) }
+
+.price { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 0; border-radius: 20px; overflow: hidden; border: 2px solid var(--ink) }
+@media (max-width: 760px) { .price { grid-template-columns: minmax(0, 1fr) } }
+.price .l { background: var(--ink); color: var(--on-ink); padding: 30px }
+.price .l .tag { display: inline-block; background: var(--sun); color: var(--ink); font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 999px }
+.price .l .amt { font: 800 64px/1 var(--f-num); margin: 18px 0 6px; color: var(--sun) }
+.price .l .amt small { font-size: 18px; color: var(--on-ink); font-weight: 500 }
+.price .l p { color: #C9CAD2; margin: 0 0 20px }
+.price .r { background: var(--surface); padding: 30px }
+.price ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px }
+.price li { padding-left: 26px; position: relative }
+.price li::before { content: ""; position: absolute; left: 0; top: 5px; width: 16px; height: 16px; border-radius: 50%; background: var(--mint-soft); box-shadow: inset 0 0 0 5px var(--mint) }
+
+.faq { max-width: 780px }
+.faq details { border-bottom: 1px solid var(--line); padding: 16px 0 }
+.faq summary { cursor: pointer; font-weight: 700; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 12px }
+.faq summary::-webkit-details-marker { display: none }
+.faq summary::after { content: "+"; font: 500 22px/1 var(--f-num); color: var(--muted) }
+.faq details[open] summary::after { content: "−" }
+.faq details p { margin: 10px 0 0; color: var(--ink-2) }
+
+.final { background: var(--ink); color: var(--on-ink); text-align: center }
+.final .wrap { padding-block: 70px }
+.final h2 { font-family: var(--f-display); font-size: clamp(30px, 5vw, 48px); margin: 0 0 12px; color: var(--sun) }
+.final p { color: #C9CAD2; margin: 0 0 26px; font-size: 17px }
+.foot { margin-top: 0 }
 </style>
+</head>
+<body>
 
-<header class="top"><div class="wrap" id="topbar"></div></header>
-<main class="wrap" id="app"><div class="loading">載入中…</div></main>
-<div id="modal-root"></div>
-<div id="toast" class="toast" hidden></div>
+<nav class="nav" id="nav"><div class="wrap">
+  <a class="brand" href="./"><span class="mark" aria-hidden="true">聚</span><span>聚場</span></a>
+  <div class="links"><a href="#why">為什麼要有自己的社群</a><a href="#features">功能</a><a href="#price">價格</a><a href="#faq">常見問題</a></div>
+  <span class="spacer"></span>
+  <a class="btn sm" href="app.html" style="background:transparent">登入</a>
+  <a class="btn dark sm" href="app.html#new">免費開社群</a>
+</div></nav>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<header class="hero"><div class="wrap">
+  <div>
+    <div class="eyebrow">YOUR PEOPLE · YOUR PLACE</div>
+    <h1>把你的人，<br>聚在<em>你自己的場</em>。</h1>
+    <p class="sub">聚場讓你免費開一個自己的社群：成員在這裡討論、上課、報名活動，按讚就能幫彼此加分升等。粉絲不再只是演算法裡的數字，而是一群會回來的人。</p>
+    <div class="ctas"><a class="btn dark lg" href="app.html#new">免費建立我的社群</a><a class="btn lg" href="app.html#c--money-awakening--about" style="background:var(--surface);border-color:var(--surface)">看看示範社群</a></div>
+    <div class="note"><span>公測期間完全免費</span><span>不用信用卡</span><span>3 分鐘開好</span></div>
+  </div>
+  <div class="loop" aria-label="示意：成員按讚、作者加分、等級升級、排行榜更新">
+    <div class="mock">
+      <div class="row"><span class="av" style="background:#FF7A59">薇<span class="lv">3</span></span><div><b>林小薇</b><div class="small muted">3 小時前 · 成果分享</div></div></div>
+      <h4>連續記帳 30 天，終於看懂自己的錢去哪了</h4>
+      <p>外送一個月就六千多，這個月開始每週只叫兩次…</p>
+      <span class="likebtn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 18.5 21H7V10l4.4-7.4A1.8 1.8 0 0 1 15 4.4z"/></svg>12</span>
+    </div>
+    <span class="plus" aria-hidden="true">+1</span>
+    <div class="mock lvl"><span class="av lg" style="background:#FF7A59">薇<span class="lv">4</span></span>
+      <div style="flex:1"><b>升到等級 4「配置入門」</b><div class="small muted">解鎖課程：資產配置實戰</div><div class="bar"><i></i></div></div></div>
+    <div class="mock rank"><b>30 天排行</b><ol>
+      <li><span class="medal">1</span>林小薇<b>+83</b></li><li><span class="medal">2</span>李珮瑜<b>+36</b></li><li><span class="medal" style="background:var(--surface-2)">3</span>張家豪<b>+19</b></li></ol></div>
+  </div>
+</div></header>
+
+<section class="s" id="why"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">WHY</div><h2>為什麼要經營自己的社群？</h2>
+    <p>如果你在 IG、FB、LINE 群組經營過受眾，下面這些狀況應該不陌生。</p></div>
+  <div class="pains">
+    <div class="pain"><p class="q">發了文，觸及卻越來越低</p><p class="a">在聚場，你的貼文會出現在每位成員的動態牆上，沒有演算法替你決定誰看得到。</p></div>
+    <div class="pain"><p class="q">追蹤數很多，但不知道誰是真的鐵粉</p><p class="a">成員名單、等級、誰最常互動，你在後台一眼就看得到。</p></div>
+    <div class="pain"><p class="q">LINE 群組訊息一下就被洗掉</p><p class="a">貼文有分類、可以置頂、可以留言回覆，重要的內容不會沉下去。</p></div>
+    <div class="pain"><p class="q">課程、群組、直播、報名散在五個工具</p><p class="a">動態牆、課程、行事曆、成員管理都在同一個地方，成員只要記住一個連結。</p></div>
+  </div>
+  <div style="margin-top:40px">
+    <div class="s-head" style="margin-bottom:18px"><h2 style="font-size:clamp(24px,3.4vw,32px)">公域流量 vs. 私域社群</h2>
+      <p>公域負責讓人認識你，私域負責讓人留下來。兩個都要，但只有私域是你自己的。</p></div>
+    <div class="vs">
+      <div class="pub"><h3>公域平台</h3><p class="sub">IG、FB、YouTube、Threads</p><dl>
+        <dt>誰看得到你的內容</dt><dd>由演算法決定，每次都要重新搶觸及</dd>
+        <dt>粉絲名單</dt><dd>在平台手上，帳號出問題就全部歸零</dd>
+        <dt>互動方式</dt><dd>按讚、留言，看完就滑走</dd>
+        <dt>規則</dt><dd>平台說改就改</dd></dl></div>
+      <div class="pri"><h3>你的聚場社群</h3><p class="sub">私域：成員主動加入、主動回來</p><dl>
+        <dt>誰看得到你的內容</dt><dd>每一位成員都看得到</dd>
+        <dt>成員名單</dt><dd>在你的後台，你知道每個人是誰</dd>
+        <dt>互動方式</dt><dd>討論、上課、報名活動，按讚還能互相加分升等</dd>
+        <dt>規則</dt><dd>你決定誰能加入、誰能發什麼</dd></dl></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="s alt" id="features"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">FEATURES</div><h2>一個社群，你可以做到這些</h2><p>現在就能用的功能，全部免費。</p></div>
+  <div class="feats">
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg></div><h3>動態牆</h3><p>發文、分類、置頂、留言回覆。「公告」分類可以設定只有你能發。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z"/></svg></div><h3>按讚升等</h3><p>別人按一個讚，作者就加 1 分。9 個等級，名稱可以換成你社群的用語。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></div><h3>排行榜</h3><p>7 天、30 天、全期三種排行，讓最用心的成員被看見。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M9 7h6"/></svg></div><h3>課程教室</h3><p>課程、章節、單元，可放影片連結。設定升到某個等級才解鎖，或入會滿幾天才開放。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><h3>行事曆與報名</h3><p>直播、工作坊、讀書會排進行事曆，成員一鍵報名，你看得到有誰會來。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><h3>私密社群與審核</h3><p>設成私密，新成員要你核准才能進來，適合付費學員或核心夥伴。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h3>社群後台</h3><p>成員數、活躍人數、每天互動量；審核申請、指派管理員、管理分類。</p></div>
+    <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>以成員視角預覽</h3><p>一鍵切換，看看一般成員看到的畫面，確認哪些課程是鎖住的。</p></div>
+  </div>
+</div></section>
+
+<section class="s" id="levels"><div class="wrap">
+  <div class="ladder">
+    <div>
+      <div class="s-head" style="margin-bottom:22px"><div class="eyebrow">GAMIFICATION</div><h2>讓成員自己想回來</h2>
+        <p>聚場的分數只來自「別人覺得你有幫助」。發一百篇沒人按讚的文不會加分，一則被很多人按讚的留言會。</p></div>
+      <div class="rules">
+        <div class="rule"><span class="n">1</span><div><h3>成員分享、留言</h3><p>心得、提問、成果，或回答別人的問題。</p></div></div>
+        <div class="rule"><span class="n">2</span><div><h3>別人按讚，作者加 1 分</h3><p>不能幫自己按讚，分數反映的是真實的貢獻。</p></div></div>
+        <div class="rule"><span class="n">3</span><div><h3>分數累積升等，解鎖內容</h3><p>你可以設定進階課程要到幾級才能看，讓參與變成學習的鑰匙。</p></div></div>
+      </div>
+    </div>
+    <figure style="margin:0">
+      <figcaption class="small muted" style="margin-bottom:10px">各等級需要的分數（越高越難）</figcaption>
+      <div class="stairs" aria-hidden="true" id="stairs"></div>
+      <div class="stairs-axis" aria-hidden="true" id="stairs-axis"></div>
+      <table class="sr-only"><caption>等級與分數門檻</caption><tbody id="stairs-table"></tbody></table>
+    </figure>
+  </div>
+</div></section>
+
+<section class="s alt"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">FOR WHO</div><h2>誰適合開聚場社群？</h2><p>只要你有一群想持續交流、一起成長的人。</p></div>
+  <div class="who"><span>教練與講師</span><span>財商與理財教育者</span><span>健身與運動教練</span><span>美業設計師</span><span>品牌主理人</span><span>讀書會與社團</span><span>線上課程創作者</span><span>接案與副業社群</span></div>
+</div></section>
+
+<section class="s"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">HOW</div><h2>三個步驟開始</h2></div>
+  <div class="steps">
+    <div class="step"><h3>免費註冊</h3><p>用 Email 註冊，不需要信用卡。</p></div>
+    <div class="step"><h3>建立社群</h3><p>取名字、選主題色、寫一段介紹，選公開或私密。</p></div>
+    <div class="step"><h3>邀請第一批成員</h3><p>後台有現成的邀請連結和訊息範本，貼到 IG 或 LINE 就好。</p></div>
+  </div>
+</div></section>
+
+<section class="s alt" id="price"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">PRICING</div><h2>公測期間，全部免費</h2><p>現在開社群不用付任何費用，所有功能都可以用。</p></div>
+  <div class="price">
+    <div class="l"><span class="tag">公測方案</span><div class="amt">NT$0 <small>/ 月</small></div><p>沒有成員人數上限，沒有隱藏費用。</p><a class="btn primary lg" href="app.html#new">免費建立社群</a></div>
+    <div class="r"><ul>
+      <li>不限社群成員人數</li><li>動態牆、分類、置頂</li><li>按讚升等與排行榜</li><li>課程教室、等級解鎖</li>
+      <li>行事曆與活動報名</li><li>私密社群與入會審核</li><li>社群後台與數據</li><li>自訂主題色與等級名稱</li></ul>
+      <p class="small muted" style="margin:20px 0 0">之後推出會員收費等付費功能時，會先公告並通知公測期間建立社群的你。</p></div>
+  </div>
+</div></section>
+
+<section class="s" id="faq"><div class="wrap">
+  <div class="s-head"><div class="eyebrow">FAQ</div><h2>常見問題</h2></div>
+  <div class="faq">
+    <details><summary>我不會寫程式，也可以開社群嗎？</summary><p>可以。註冊後按「建立社群」，填名稱和介紹就完成了，所有設定都在後台用按鈕操作。</p></details>
+    <details><summary>成員加入要付費嗎？</summary><p>不用。目前成員加入你的社群完全免費。會員收費功能還在開發中，推出後由你決定要不要收費。</p></details>
+    <details><summary>聚場跟 LINE 群組、FB 社團差在哪？</summary><p>LINE 群組適合即時聊天，但訊息很快被洗掉；FB 社團的觸及由演算法決定。聚場把討論、課程、活動放在同一個地方，內容有分類可以回頭找，再加上按讚升等的機制，讓成員更願意參與。</p></details>
+    <details><summary>成員可以用手機嗎？</summary><p>可以，用手機瀏覽器打開社群連結就能使用，版面已經針對手機調整。App 版本還在規劃中。</p></details>
+    <details><summary>課程影片要放在哪裡？</summary><p>目前可以貼 YouTube（不公開影片也可以）或其他影片平台的連結。直接上傳影片的功能會在之後的版本推出。</p></details>
+    <details><summary>我的資料安全嗎？</summary><p>每個社群的內容只有成員看得到，私密社群要你核准才能加入。資料庫的每一張表都設有權限規則，成員的點數和角色也無法從網頁端竄改。</p></details>
+  </div>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2>你的人，值得一個自己的場。</h2>
+  <p>現在開社群，公測期間全部免費。</p>
+  <a class="btn primary lg" href="app.html#new">免費建立我的社群</a>
+</div></section>
+
+<footer class="foot"><div class="wrap" id="footer"></div></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/changelog.js"></script>
 <script>
-/* =====================================================================
-   設定：填入 Supabase 專案的 URL 與 anon key 就會切換成正式資料庫。
-   兩個都空白 = 示範模式（資料只存在這台瀏覽器）。
-   ===================================================================== */
-const CONFIG = {
-  SUPABASE_URL: 'https://nlxciibsriyjldisuefr.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_M-a1saZMHa06aZQiQ_e0LA_5y6MXHdN',
-  APP_NAME: '聚場'
-};
-
-/* ---------- 共用工具 ---------- */
-const LEVEL_PTS = [0,5,20,65,155,515,2015,8015,33015];
-const DEFAULT_LEVEL_NAMES = ['新手','學徒','行動者','實踐者','推手','導師','領航者','大師','傳奇'];
-const levelFor = p => { let l = 1; for (let i = 0; i < 9; i++) if (p >= LEVEL_PTS[i]) l = i + 1; return l; };
-const levelProgress = p => {
-  const l = levelFor(p);
-  if (l >= 9) return { level: 9, need: 0, pct: 100 };
-  const lo = LEVEL_PTS[l-1], hi = LEVEL_PTS[l];
-  return { level: l, need: hi - p, pct: Math.round((p - lo) / (hi - lo) * 100) };
-};
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const newId = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now());
-const nowIso = () => new Date().toISOString();
-const byTime = (a, b) => a.created_at.localeCompare(b.created_at);
-const rtf = new Intl.RelativeTimeFormat('zh-TW', { numeric: 'auto' });
-function ago(iso) {
-  const s = (new Date(iso) - Date.now()) / 1000, a = Math.abs(s);
-  if (a < 60) return '剛剛';
-  if (a < 3600) return rtf.format(Math.round(s/60), 'minute');
-  if (a < 86400) return rtf.format(Math.round(s/3600), 'hour');
-  if (a < 86400*30) return rtf.format(Math.round(s/86400), 'day');
-  return new Date(iso).toLocaleDateString('zh-TW');
-}
-const AV_COLORS = ['#0D6A5B','#7A4FA0','#B5532E','#2F6FA8','#8A6A12','#A23B5E','#3F7D3A','#5A5F9E'];
-function avatar(user, points, small) {
-  const name = user?.name || '?';
-  let h = 0; for (const ch of String(user?.id || name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const lv = points == null ? '' : `<span class="lv" title="等級 ${levelFor(points)}">${levelFor(points)}</span>`;
-  return `<span class="av${small ? ' sm' : ''}" style="background:${AV_COLORS[h % AV_COLORS.length]}" aria-hidden="true">${esc(name.trim().charAt(0) || '?')}${lv}</span>`;
-}
-const heart = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 18.5 21H7V10l4.4-7.4A1.8 1.8 0 0 1 15 4.4z"/></svg>`;
-const COVER_BG = ['linear-gradient(135deg,#0D6A5B,#2C8F7C)','linear-gradient(135deg,#7A4FA0,#A77CC9)','linear-gradient(135deg,#B5532E,#D98A55)','linear-gradient(135deg,#2F6FA8,#5C9AD0)','linear-gradient(135deg,#8A6A12,#C29A35)'];
-function toast(msg) {
-  const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false;
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600);
-}
-
-/* =====================================================================
-   資料層 A：示範模式（localStorage）
-   ===================================================================== */
-function makeDemoApi() {
-  const KEY = 'juchang-demo-v1';
-  let db = load();
-  function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {} return seed(); }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
-  const user = id => db.users.find(u => u.id === id) || { id, name: '已離開的成員' };
-  const author = id => { const u = user(id); return { id: u.id, name: u.name }; };
-  const mem = (cid, u = db.session) => db.memberships.find(m => m.community_id === cid && m.user_id === u);
-  const isMember = cid => mem(cid)?.status === 'active';
-  const isAdmin = cid => isMember(cid) && mem(cid).role !== 'member';
-  const countLikes = (t, id) => db.likes.filter(l => l.target_type === t && l.target_id === id).length;
-  const liked = (t, id) => db.likes.some(l => l.target_type === t && l.target_id === id && l.user_id === db.session);
-  const need = cond => { if (!cond) throw new Error('你沒有權限做這件事'); };
-
-  return {
-    mode: 'demo',
-    async getUser() { const u = db.users.find(x => x.id === db.session); return u ? { id: u.id, name: u.name, email: u.email } : null; },
-    async signIn(email) {
-      const u = db.users.find(x => x.email === email.trim().toLowerCase());
-      if (!u) throw new Error('示範模式找不到這個 Email，請改用「註冊」，或用 demo@juchang.app');
-      db.session = u.id; save();
-    },
-    async signUp(email, pw, name) {
-      email = email.trim().toLowerCase();
-      if (db.users.some(x => x.email === email)) throw new Error('這個 Email 已經註冊過，請直接登入');
-      const u = { id: newId(), name: name || email.split('@')[0], email }; db.users.push(u); db.session = u.id; save();
-    },
-    async signOut() { db.session = null; save(); },
-    async reset() { db = seed(); save(); },
-    async listCommunities() {
-      return db.communities.map(c => ({ ...c, member_count: db.memberships.filter(m => m.community_id === c.id && m.status === 'active').length }));
-    },
-    async myMemberships() { return db.memberships.filter(m => m.user_id === db.session); },
-    async createCommunity(d) {
-      if (db.communities.some(c => c.slug === d.slug)) throw new Error('這個網址代稱已經有人用了，換一個試試');
-      const c = { id: newId(), ...d, owner_id: db.session, level_names: [...DEFAULT_LEVEL_NAMES], price_monthly: 0, created_at: nowIso() };
-      db.communities.push(c);
-      db.memberships.push({ community_id: c.id, user_id: db.session, role: 'owner', status: 'active', points: 0, joined_at: nowIso() });
-      ['公告','一般討論','成果分享','提問'].forEach((n, i) => db.categories.push({ id: newId(), community_id: c.id, name: n, sort: i, admin_only: i === 0 }));
-      save(); return c;
-    },
-    async join(cid) {
-      if (mem(cid)) return mem(cid).status;
-      const c = db.communities.find(x => x.id === cid); const status = c.is_private ? 'pending' : 'active';
-      db.memberships.push({ community_id: cid, user_id: db.session, role: 'member', status, points: 0, joined_at: nowIso() });
-      save(); return status;
-    },
-    async leave(cid) { need(mem(cid)?.role !== 'owner'); db.memberships = db.memberships.filter(m => !(m.community_id === cid && m.user_id === db.session)); save(); },
-    async listCategories(cid) { return db.categories.filter(c => c.community_id === cid).sort((a, b) => a.sort - b.sort); },
-    async listPosts(cid) {
-      if (!isMember(cid)) return [];
-      return db.posts.filter(p => p.community_id === cid).map(p => ({ ...p, author: author(p.author_id), like_count: countLikes('post', p.id), liked: liked('post', p.id), comment_count: db.comments.filter(c => c.post_id === p.id).length }))
-        .sort((a, b) => (b.pinned - a.pinned) || b.created_at.localeCompare(a.created_at));
-    },
-    async createPost(d) {
-      need(isMember(d.community_id));
-      const cat = db.categories.find(c => c.id === d.category_id);
-      if (cat?.admin_only && !isAdmin(d.community_id)) throw new Error(`只有管理員可以在「${cat.name}」發文`);
-      db.posts.push({ id: newId(), ...d, author_id: db.session, pinned: false, created_at: nowIso() }); save();
-    },
-    async togglePin(id) { const p = db.posts.find(x => x.id === id); need(isAdmin(p.community_id)); p.pinned = !p.pinned; save(); },
-    async deletePost(id) {
-      const p = db.posts.find(x => x.id === id); need(p.author_id === db.session || isAdmin(p.community_id));
-      const cids = db.comments.filter(c => c.post_id === id).map(c => c.id);
-      db.posts = db.posts.filter(x => x.id !== id); db.comments = db.comments.filter(c => c.post_id !== id);
-      db.likes = db.likes.filter(l => !(l.target_type === 'post' && l.target_id === id) && !(l.target_type === 'comment' && cids.includes(l.target_id)));
-      save();
-    },
-    async listComments(pid) {
-      return db.comments.filter(c => c.post_id === pid).sort(byTime).map(c => ({ ...c, author: author(c.author_id), like_count: countLikes('comment', c.id), liked: liked('comment', c.id) }));
-    },
-    async createComment(d) { need(isMember(d.community_id)); db.comments.push({ id: newId(), ...d, author_id: db.session, created_at: nowIso() }); save(); },
-    async toggleLike(type, id) {
-      const t = (type === 'post' ? db.posts : db.comments).find(x => x.id === id);
-      if (!t) throw new Error('找不到這則內容');
-      if (t.author_id === db.session) throw new Error('不能幫自己按讚');
-      need(isMember(t.community_id));
-      const i = db.likes.findIndex(l => l.target_type === type && l.target_id === id && l.user_id === db.session);
-      const rm = mem(t.community_id, t.author_id);
-      if (i >= 0) {
-        db.likes.splice(i, 1);
-        if (rm) rm.points = Math.max(0, rm.points - 1);
-        db.point_events.push({ community_id: t.community_id, user_id: t.author_id, delta: -1, created_at: nowIso() });
-      } else {
-        db.likes.push({ user_id: db.session, target_type: type, target_id: id, community_id: t.community_id, recipient_id: t.author_id, created_at: nowIso() });
-        if (rm) rm.points += 1;
-        db.point_events.push({ community_id: t.community_id, user_id: t.author_id, delta: 1, created_at: nowIso() });
-      }
-      save();
-    },
-    async leaderboard(cid, days) {
-      if (!isMember(cid)) return [];
-      const since = days ? Date.now() - days * 86400000 : 0;
-      return db.memberships.filter(m => m.community_id === cid && m.status === 'active').map(m => ({
-        user_id: m.user_id, name: user(m.user_id).name, total_points: m.points,
-        points: days ? db.point_events.filter(e => e.community_id === cid && e.user_id === m.user_id && new Date(e.created_at) >= since).reduce((s, e) => s + e.delta, 0) : m.points
-      })).sort((a, b) => b.points - a.points).slice(0, 50);
-    },
-    async listMembers(cid) {
-      if (!isMember(cid)) return [];
-      return db.memberships.filter(m => m.community_id === cid && (m.status === 'active' || isAdmin(cid)))
-        .map(m => ({ ...m, name: user(m.user_id).name }));
-    },
-    async setMemberStatus(cid, uid, status) {
-      need(isAdmin(cid));
-      if (status === 'removed') db.memberships = db.memberships.filter(m => !(m.community_id === cid && m.user_id === uid));
-      else mem(cid, uid).status = status;
-      save();
-    },
-    async listCourses(cid) {
-      if (!isMember(cid)) return [];
-      return db.courses.filter(c => c.community_id === cid && (c.published || isAdmin(cid))).sort((a, b) => a.sort - b.sort).map(c => ({
-        ...c, modules: db.modules.filter(m => m.course_id === c.id).sort((a, b) => a.sort - b.sort).map(m => ({
-          ...m, lessons: db.lessons.filter(l => l.module_id === m.id).sort((a, b) => a.sort - b.sort).map(l => ({ id: l.id, title: l.title, sort: l.sort }))
-        }))
-      }));
-    },
-    async getLesson(id) { return db.lessons.find(l => l.id === id) || null; },
-    async listProgress() { return db.progress.filter(p => p.user_id === db.session).map(p => p.lesson_id); },
-    async toggleComplete(lid) {
-      const i = db.progress.findIndex(p => p.user_id === db.session && p.lesson_id === lid);
-      if (i >= 0) db.progress.splice(i, 1); else db.progress.push({ user_id: db.session, lesson_id: lid, completed_at: nowIso() });
-      save();
-    },
-    async createCourse(d) { need(isAdmin(d.community_id)); const c = { id: newId(), published: true, sort: db.courses.length, created_at: nowIso(), ...d }; db.courses.push(c); save(); return c; },
-    async createModule(d) { const c = db.courses.find(x => x.id === d.course_id); need(isAdmin(c.community_id)); db.modules.push({ id: newId(), sort: db.modules.length, ...d }); save(); },
-    async createLesson(d) { need(isAdmin(d.community_id)); const l = { id: newId(), sort: db.lessons.length, ...d }; db.lessons.push(l); save(); return l; },
-    async listEvents(cid) {
-      if (!isMember(cid)) return [];
-      return db.events.filter(e => e.community_id === cid).sort((a, b) => a.starts_at.localeCompare(b.starts_at)).map(e => ({
-        ...e, going_count: db.rsvps.filter(r => r.event_id === e.id).length, going: db.rsvps.some(r => r.event_id === e.id && r.user_id === db.session)
-      }));
-    },
-    async createEvent(d) { need(isAdmin(d.community_id)); db.events.push({ id: newId(), created_by: db.session, created_at: nowIso(), ...d }); save(); },
-    async toggleRsvp(eid) {
-      const i = db.rsvps.findIndex(r => r.event_id === eid && r.user_id === db.session);
-      if (i >= 0) db.rsvps.splice(i, 1); else db.rsvps.push({ event_id: eid, user_id: db.session });
-      save();
-    }
-  };
-
-  /* ---- 示範資料（標示為範例） ---- */
-  function seed() {
-    let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    const ago = (d, h = 0) => new Date(Date.now() - d * 86400000 - h * 3600000).toISOString();
-    const at = (d, hh, mm = 0) => { const x = new Date(); x.setDate(x.getDate() + d); x.setHours(hh, mm, 0, 0); return x.toISOString(); };
-    const users = [
-      { id: 'u-me', name: '示範帳號', email: 'demo@juchang.app' },
-      { id: 'u1', name: '林小薇', email: 'wei@example.com' }, { id: 'u2', name: '陳柏宇', email: 'po@example.com' },
-      { id: 'u3', name: '王思涵', email: 'han@example.com' }, { id: 'u4', name: '張家豪', email: 'hao@example.com' },
-      { id: 'u5', name: '李珮瑜', email: 'pei@example.com' }, { id: 'u6', name: '黃志明', email: 'ming@example.com' },
-      { id: 'u7', name: '吳宜庭', email: 'ting@example.com' }
-    ];
-    const communities = [
-      { id: 'c1', slug: 'money-awakening', name: '財商覺醒俱樂部', tagline: '從現金流三張表開始，一步步建立被動收入', description: '這裡是一起練習財商的地方。每週一次直播 Q&A，課程從記帳、現金流量表一路走到資產配置。\n\n按讚會幫作者加分，分數累積升等就能解鎖進階課程。', is_private: false, owner_id: 'u-me', level_names: [...DEFAULT_LEVEL_NAMES], price_monthly: 0, created_at: ago(60) },
-      { id: 'c2', slug: 'hyrox-taipei', name: 'HYROX 台北訓練營', tagline: '8 公里跑步 × 8 個功能站的備賽社群', description: '分享課表、配速和比賽心得。每月一次線上分站技術課。', is_private: false, owner_id: 'u2', level_names: ['新兵','跑者','推雪橇','划船手','衝刺者','鐵人','隊長','教頭','傳奇'], price_monthly: 0, created_at: ago(40) },
-      { id: 'c3', slug: 'ai-freelance-lab', name: 'AI 接案實驗室', tagline: '用 AI 工具接第一個網站案子', description: '私密社群，加入需要版主審核。', is_private: true, owner_id: 'u3', level_names: [...DEFAULT_LEVEL_NAMES], price_monthly: 0, created_at: ago(20) }
-    ];
-    const memberships = [];
-    const addM = (cid, uid, role = 'member', d = 30) => memberships.push({ community_id: cid, user_id: uid, role, status: 'active', points: 0, joined_at: ago(d) });
-    addM('c1', 'u-me', 'owner', 60); ['u1','u2','u3','u4','u5','u6','u7'].forEach((u, i) => addM('c1', u, i === 0 ? 'admin' : 'member', 50 - i * 5));
-    memberships.push({ community_id: 'c1', user_id: 'u8', role: 'member', status: 'pending', points: 0, joined_at: ago(0, 3) });
-    users.push({ id: 'u8', name: '蔡明軒', email: 'hsuan@example.com' });
-    addM('c2', 'u2', 'owner', 40); ['u4','u6','u7'].forEach(u => addM('c2', u));
-    addM('c3', 'u3', 'owner', 20); ['u1','u5'].forEach(u => addM('c3', u));
-    const categories = [];
-    communities.forEach(c => ['公告','一般討論','成果分享','提問'].forEach((n, i) => categories.push({ id: `${c.id}-cat${i}`, community_id: c.id, name: n, sort: i, admin_only: i === 0 })));
-    const P = (id, cid, a, cat, title, body, d, pinned = false) => ({ id, community_id: cid, author_id: a, category_id: `${cid}-cat${cat}`, title, body, pinned, created_at: ago(d, Math.floor(rnd() * 10)) });
-    const posts = [
-      P('p1', 'c1', 'u-me', 0, '歡迎加入！先從這三件事開始', '1. 到「課程」看第一堂：現金流三張表\n2. 在「成果分享」貼出你這個月的記帳截圖\n3. 報名週四晚上的直播 Q&A\n\n別人幫你按讚就會加分，升到等級 3 會解鎖「資產配置實戰」。', 14, true),
-      P('p2', 'c1', 'u1', 2, '連續記帳 30 天，終於看懂自己的錢去哪了', '原本以為每個月花在吃的大概一萬，結果實際是一萬七。外送就佔了六千多。這個月開始每週只叫兩次外送。', 3),
-      P('p3', 'c1', 'u4', 3, '緊急預備金要放幾個月才夠？', '我是業務，收入不固定。看到有人說 3 個月，也有人說 12 個月，大家都怎麼抓？', 2),
-      P('p4', 'c1', 'u5', 1, '分享我的資產負債表模板', '把課程裡的格式做成試算表，有需要的人留言我再分享。重點是負債那欄要把信用卡分期也算進去。', 5),
-      P('p5', 'c1', 'u2', 2, '第一次算出自己的淨資產，是負的', '很震撼，但至少知道起點在哪裡了。學貸還有 28 萬，車貸 41 萬。目標兩年內轉正。', 1),
-      P('p6', 'c1', 'u3', 1, '保本型工具跟定存差在哪？', '課程第二章看到一半有點卡住，有人可以用白話解釋一下嗎？', 0),
-      P('p7', 'c2', 'u2', 0, '十二月模擬賽報名開放', '地點在內湖，限額 40 人。', 4, true),
-      P('p8', 'c2', 'u4', 2, '雪橇推進終於破 2 分鐘', '關鍵是重心壓低、步伐變小。', 2)
-    ];
-    const comments = [
-      { id: 'cm1', post_id: 'p3', community_id: 'c1', author_id: 'u1', parent_id: null, body: '收入不固定的話，我會建議至少 6 個月。', created_at: ago(1, 20) },
-      { id: 'cm2', post_id: 'p3', community_id: 'c1', author_id: 'u-me', parent_id: 'cm1', body: '同意，而且要用「最低月收入」的那幾個月來估支出缺口。', created_at: ago(1, 18) },
-      { id: 'cm3', post_id: 'p2', community_id: 'c1', author_id: 'u6', parent_id: null, body: '外送真的是隱形殺手。', created_at: ago(2, 5) },
-      { id: 'cm4', post_id: 'p5', community_id: 'c1', author_id: 'u7', parent_id: null, body: '敢面對就是第一步，加油！', created_at: ago(0, 20) },
-      { id: 'cm5', post_id: 'p6', community_id: 'c1', author_id: 'u-me', parent_id: null, body: '週四直播我會專門講這題，記得報名。', created_at: ago(0, 6) }
-    ];
-    const likes = [], point_events = [];
-    const like = (u, type, id) => {
-      const t = (type === 'post' ? posts : comments).find(x => x.id === id);
-      if (!t || t.author_id === u || likes.some(l => l.user_id === u && l.target_id === id)) return;
-      const created_at = new Date(new Date(t.created_at).getTime() + 3600000 * (1 + rnd() * 20)).toISOString();
-      likes.push({ user_id: u, target_type: type, target_id: id, community_id: t.community_id, recipient_id: t.author_id, created_at });
-      point_events.push({ community_id: t.community_id, user_id: t.author_id, delta: 1, created_at });
-      const m = memberships.find(x => x.community_id === t.community_id && x.user_id === t.author_id); if (m) m.points++;
-    };
-    const c1Users = ['u-me','u1','u2','u3','u4','u5','u6','u7'];
-    [['p1',7],['p2',6],['p3',3],['p4',6],['p5',5],['p6',2]].forEach(([p, n]) => c1Users.slice().sort(() => rnd() - .5).slice(0, n).forEach(u => like(u, 'post', p)));
-    [['cm1',4],['cm2',5],['cm3',2],['cm4',3],['cm5',4]].forEach(([c, n]) => c1Users.slice().sort(() => rnd() - .5).slice(0, n).forEach(u => like(u, 'comment', c)));
-    ['u4','u6','u7'].forEach(u => like(u, 'post', 'p7')); ['u2','u6'].forEach(u => like(u, 'post', 'p8'));
-    // 補一些較早期的歷史分數，讓等級分布更真實
-    const hist = { 'u-me': 20, u1: 70, u5: 30, u2: 8, u4: 14 };
-    Object.entries(hist).forEach(([u, n]) => { const m = memberships.find(x => x.community_id === 'c1' && x.user_id === u); m.points += n; point_events.push({ community_id: 'c1', user_id: u, delta: n, created_at: ago(40) }); });
-    const courses = [
-      { id: 'k1', community_id: 'c1', title: '新手入門：現金流三張表', description: '記帳、現金流量表、資產負債表，一次建立。', unlock_level: 1, sort: 0, published: true, created_at: ago(55) },
-      { id: 'k2', community_id: 'c1', title: '資產配置實戰', description: '緊急預備金、保本工具與長期投資的分配方法。', unlock_level: 3, sort: 1, published: true, created_at: ago(50) },
-      { id: 'k3', community_id: 'c1', title: '被動收入系統', description: '把現金流變成可以自己運轉的系統。', unlock_level: 5, sort: 2, published: true, created_at: ago(30) },
-      { id: 'k4', community_id: 'c2', title: '八站技術總覽', description: '每一站的動作要點與常見失誤。', unlock_level: 1, sort: 0, published: true, created_at: ago(30) }
-    ];
-    const modules = [
-      { id: 'm1', course_id: 'k1', title: '第一章　看見你的錢', sort: 0, drip_days: 0 },
-      { id: 'm2', course_id: 'k1', title: '第二章　三張表', sort: 1, drip_days: 0 },
-      { id: 'm3', course_id: 'k2', title: '第一章　安全網', sort: 0, drip_days: 0 },
-      { id: 'm4', course_id: 'k2', title: '第二章　配置比例', sort: 1, drip_days: 7 },
-      { id: 'm5', course_id: 'k3', title: '第一章　系統思維', sort: 0, drip_days: 0 },
-      { id: 'm6', course_id: 'k4', title: '跑步與滑雪機', sort: 0, drip_days: 0 }
-    ];
-    const L = (id, m, c, cid, title, body, video) => ({ id, module_id: m, course_id: c, community_id: cid, title, body, video_url: video || '', sort: Number(id.slice(1)) });
-    const lessons = [
-      L('l1', 'm1', 'k1', 'c1', '為什麼要記帳', '記帳不是為了省錢，是為了看見。\n\n這一堂的作業：連續 7 天，把每一筆支出記下來，週末在「成果分享」貼出你的分類結果。', 'https://www.youtube.com/watch?v=example'),
-      L('l2', 'm1', 'k1', 'c1', '支出分類的三個層次', '固定支出、變動支出、可省支出。\n\n先分大類，不要一開始就分太細。'),
-      L('l3', 'm2', 'k1', 'c1', '現金流量表', '每月收入 − 每月支出 = 自由現金流。\n\n自由現金流是你所有理財行動的燃料。'),
-      L('l4', 'm2', 'k1', 'c1', '資產負債表', '資產 − 負債 = 淨資產。\n\n把信用卡分期、車貸、學貸都列進負債。'),
-      L('l5', 'm3', 'k2', 'c1', '緊急預備金怎麼算', '以每月必要支出 × 6 為基準，收入不穩定者拉到 9–12 個月。'),
-      L('l6', 'm4', 'k2', 'c1', '保本工具與定存的差異', '比較流動性、報酬率與到期條件。'),
-      L('l7', 'm5', 'k3', 'c1', '從主動收入到系統收入', '收入的四種型態與轉換路徑。'),
-      L('l8', 'm6', 'k4', 'c2', '滑雪機的拉槳節奏', '腿先發力，手臂最後收。')
-    ];
-    const events = [
-      { id: 'e1', community_id: 'c1', title: '每週直播 Q&A', description: '本週主題：保本工具與定存的差異。會前可以在社群「提問」分類留問題。', starts_at: at(1, 20, 30), duration_min: 60, location_url: 'https://meet.google.com/', created_by: 'u-me', created_at: ago(5) },
-      { id: 'e2', community_id: 'c1', title: '現金流三張表工作坊', description: '帶著你的記帳資料，現場一起完成三張表。', starts_at: at(9, 14, 0), duration_min: 120, location_url: '', created_by: 'u-me', created_at: ago(5) },
-      { id: 'e3', community_id: 'c1', title: '每週直播 Q&A', description: '上週回顧：緊急預備金。', starts_at: at(-6, 20, 30), duration_min: 60, location_url: '', created_by: 'u-me', created_at: ago(12) },
-      { id: 'e4', community_id: 'c2', title: '分站技術課：雪橇', description: '', starts_at: at(4, 19, 0), duration_min: 90, location_url: '', created_by: 'u2', created_at: ago(3) }
-    ];
-    const rsvps = [['e1','u1'],['e1','u2'],['e1','u4'],['e1','u6'],['e2','u5'],['e2','u1'],['e3','u1'],['e4','u4']].map(([event_id, user_id]) => ({ event_id, user_id }));
-    const progress = [{ user_id: 'u-me', lesson_id: 'l1', completed_at: ago(10) }];
-    return { session: 'u-me', users, communities, memberships, categories, posts, comments, likes, point_events, courses, modules, lessons, progress, events, rsvps };
-  }
-}
-
-/* =====================================================================
-   資料層 B：Supabase（填好 CONFIG 後啟用，對應 schema.sql）
-   ===================================================================== */
-function makeSupabaseApi() {
-  const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  let me = null;
-  const translate = m => {
-    if (/communities_slug_key|duplicate key.*slug/.test(m)) return '這個網址代稱已經有人用了，換一個試試';
-    if (/communities_slug_check/.test(m)) return '網址代稱只能用小寫英文、數字和「-」，長度 3–41 字';
-    if (/Invalid login credentials/.test(m)) return 'Email 或密碼不正確';
-    if (/row-level security/.test(m)) return '你沒有權限做這件事';
-    return m;
-  };
-  const ok = ({ data, error }) => { if (error) throw new Error(translate(error.message)); return data; };
-  const prof = p => p ? { id: p.id, name: p.display_name } : { id: null, name: '已離開的成員' };
-  async function likeInfo(type, ids) {
-    const m = {}; if (!ids.length) return m;
-    ok(await sb.from('likes').select('target_id,user_id').eq('target_type', type).in('target_id', ids))
-      .forEach(r => { m[r.target_id] ??= { n: 0, mine: false }; m[r.target_id].n++; if (r.user_id === me.id) m[r.target_id].mine = true; });
-    return m;
-  }
-  return {
-    mode: 'supabase',
-    async getUser() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) { me = null; return null; }
-      const p = ok(await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle());
-      me = { id: session.user.id, name: p?.display_name || session.user.email, email: session.user.email };
-      return me;
-    },
-    async signIn(email, password) { ok(await sb.auth.signInWithPassword({ email, password })); },
-    async signUp(email, password, name) {
-      const d = ok(await sb.auth.signUp({ email, password, options: { data: { display_name: name } } }));
-      if (!d.session) throw new Error('註冊成功！請到信箱點驗證信，再回來登入');
-    },
-    async signOut() { await sb.auth.signOut(); me = null; },
-    async listCommunities() {
-      const cs = ok(await sb.from('communities').select('*').order('created_at'));
-      const st = Object.fromEntries(ok(await sb.from('community_stats').select('*')).map(s => [s.community_id, s.member_count]));
-      return cs.map(c => ({ ...c, member_count: st[c.id] || 0 }));
-    },
-    async myMemberships() { return ok(await sb.from('memberships').select('*').eq('user_id', me.id)); },
-    async createCommunity(d) { return ok(await sb.from('communities').insert({ ...d, owner_id: me.id }).select().single()); },
-    async join(cid) { return ok(await sb.rpc('join_community', { cid })); },
-    async leave(cid) { ok(await sb.from('memberships').delete().eq('community_id', cid).eq('user_id', me.id)); },
-    async listCategories(cid) { return ok(await sb.from('categories').select('*').eq('community_id', cid).order('sort')); },
-    async listPosts(cid) {
-      const ps = ok(await sb.from('posts').select('*, author:profiles(id,display_name)').eq('community_id', cid)
-        .order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100));
-      const ids = ps.map(p => p.id), li = await likeInfo('post', ids), cc = {};
-      if (ids.length) ok(await sb.from('comments').select('post_id').in('post_id', ids)).forEach(c => cc[c.post_id] = (cc[c.post_id] || 0) + 1);
-      return ps.map(p => ({ ...p, author: prof(p.author), like_count: li[p.id]?.n || 0, liked: !!li[p.id]?.mine, comment_count: cc[p.id] || 0 }));
-    },
-    async createPost(d) { ok(await sb.from('posts').insert({ ...d, author_id: me.id })); },
-    async togglePin(id) { const p = ok(await sb.from('posts').select('pinned').eq('id', id).single()); ok(await sb.from('posts').update({ pinned: !p.pinned }).eq('id', id)); },
-    async deletePost(id) { ok(await sb.from('posts').delete().eq('id', id)); },
-    async listComments(pid) {
-      const cs = ok(await sb.from('comments').select('*, author:profiles(id,display_name)').eq('post_id', pid).order('created_at'));
-      const li = await likeInfo('comment', cs.map(c => c.id));
-      return cs.map(c => ({ ...c, author: prof(c.author), like_count: li[c.id]?.n || 0, liked: !!li[c.id]?.mine }));
-    },
-    async createComment(d) { ok(await sb.from('comments').insert({ ...d, author_id: me.id })); },
-    async toggleLike(type, id) {
-      const ex = ok(await sb.from('likes').select('user_id').eq('user_id', me.id).eq('target_type', type).eq('target_id', id));
-      if (ex.length) ok(await sb.from('likes').delete().eq('user_id', me.id).eq('target_type', type).eq('target_id', id));
-      else ok(await sb.from('likes').insert({ user_id: me.id, target_type: type, target_id: id }));
-    },
-    async leaderboard(cid, days) {
-      return ok(await sb.rpc('leaderboard', { cid, days: days || null })).map(r => ({ user_id: r.user_id, name: r.display_name, points: Number(r.points), total_points: r.total_points }));
-    },
-    async listMembers(cid) {
-      return ok(await sb.from('memberships').select('*, profile:profiles(id,display_name)').eq('community_id', cid).order('points', { ascending: false }))
-        .map(m => ({ ...m, name: m.profile?.display_name || '成員' }));
-    },
-    async setMemberStatus(cid, uid, status) {
-      const q = sb.from('memberships');
-      ok(await (status === 'removed' ? q.delete() : q.update({ status })).eq('community_id', cid).eq('user_id', uid));
-    },
-    async listCourses(cid) {
-      const cs = ok(await sb.from('courses').select('*, modules(*, lessons(id,title,sort))').eq('community_id', cid).order('sort'));
-      return cs.map(c => ({ ...c, modules: (c.modules || []).sort((a, b) => a.sort - b.sort).map(m => ({ ...m, lessons: (m.lessons || []).sort((a, b) => a.sort - b.sort) })) }));
-    },
-    async getLesson(id) { return ok(await sb.from('lessons').select('*').eq('id', id).maybeSingle()); },
-    async listProgress() { return ok(await sb.from('lesson_progress').select('lesson_id').eq('user_id', me.id)).map(r => r.lesson_id); },
-    async toggleComplete(lid) {
-      const ex = ok(await sb.from('lesson_progress').select('lesson_id').eq('user_id', me.id).eq('lesson_id', lid));
-      if (ex.length) ok(await sb.from('lesson_progress').delete().eq('user_id', me.id).eq('lesson_id', lid));
-      else ok(await sb.from('lesson_progress').insert({ user_id: me.id, lesson_id: lid }));
-    },
-    async createCourse(d) { return ok(await sb.from('courses').insert(d).select().single()); },
-    async createModule(d) { ok(await sb.from('modules').insert(d)); },
-    async createLesson(d) { return ok(await sb.from('lessons').insert(d).select().single()); },
-    async listEvents(cid) {
-      return ok(await sb.from('events').select('*, rsvps(user_id)').eq('community_id', cid).order('starts_at'))
-        .map(e => ({ ...e, going_count: e.rsvps.length, going: e.rsvps.some(r => r.user_id === me.id) }));
-    },
-    async createEvent(d) { ok(await sb.from('events').insert({ ...d, created_by: me.id })); },
-    async toggleRsvp(eid) {
-      const ex = ok(await sb.from('rsvps').select('user_id').eq('event_id', eid).eq('user_id', me.id));
-      if (ex.length) ok(await sb.from('rsvps').delete().eq('event_id', eid).eq('user_id', me.id));
-      else ok(await sb.from('rsvps').insert({ event_id: eid, user_id: me.id }));
-    }
-  };
-}
-
-const api = (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase) ? makeSupabaseApi() : makeDemoApi();
-
-/* =====================================================================
-   畫面狀態與路由（#c--網址代稱--分頁）
-   ===================================================================== */
-const S = { user: null, communities: [], memberships: [], ui: {} };
-const TABS = [['feed','社群'],['classroom','課程'],['calendar','行事曆'],['members','成員'],['leaderboard','排行榜'],['about','關於']];
-function parseRoute() {
-  const h = location.hash.replace(/^#/, '');
-  if (h === 'new') return { view: 'new' };
-  if (h.startsWith('c--')) { const [, slug, tab] = h.split('--'); return { view: 'community', slug, tab: tab || 'feed' }; }
-  return { view: 'home' };
-}
-const go = h => { if (location.hash === '#' + h) render(); else location.hash = h; };
-const memOf = cid => S.memberships.find(m => m.community_id === cid);
-const activeMem = cid => memOf(cid)?.status === 'active' ? memOf(cid) : null;
-const isRealAdmin = cid => ['owner','admin'].includes(activeMem(cid)?.role);
-const isAdminOf = cid => !S.preview && isRealAdmin(cid);
-const levelNames = c => (c.level_names && c.level_names.length === 9) ? c.level_names : DEFAULT_LEVEL_NAMES;
-
-async function refreshBase() {
-  S.user = await api.getUser();
-  if (!S.user) return;
-  [S.communities, S.memberships] = await Promise.all([api.listCommunities(), api.myMemberships()]);
-}
-
-async function render() {
-  const app = document.getElementById('app');
-  try {
-    await refreshBase();
-    renderTop();
-    if (!S.user) { app.innerHTML = authView(); return; }
-    const r = parseRoute();
-    if (r.view === 'new') app.innerHTML = newCommunityView();
-    else if (r.view === 'community') app.innerHTML = await communityView(r);
-    else app.innerHTML = homeView();
-    await renderModal();
-  } catch (e) {
-    console.error(e);
-    app.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p><button class="btn" data-act="home">回到首頁</button></div>`;
-  }
-}
-
-function renderTop() {
-  const r = parseRoute();
-  const c = r.view === 'community' ? S.communities.find(x => x.slug === r.slug) : null;
-  document.getElementById('topbar').innerHTML = `
-    <a class="brand" href="#"><i>聚</i>${esc(CONFIG.APP_NAME)}</a>
-    ${c ? `<span class="crumb">／ ${esc(c.name)}</span>` : ''}
-    <span class="spacer"></span>
-    ${api.mode === 'demo' ? `<span class="chip" title="資料只存在這台瀏覽器">示範模式</span><button class="btn ghost sm" data-act="reset">重設範例資料</button>` : ''}
-    ${S.user ? `<span class="row small">${avatar(S.user, null, true)}<span class="name">${esc(S.user.name)}</span></span><button class="btn ghost sm" data-act="signout">登出</button>` : ''}`;
-}
-
-/* ---------- 登入／註冊 ---------- */
-function authView() {
-  const mode = S.ui.authMode || 'in';
-  return `<div style="max-width:420px;margin:30px auto" class="card">
-    <h2 style="font-size:22px">${mode === 'in' ? '登入' : '建立帳號'}</h2>
-    ${api.mode === 'demo' ? `<p class="muted small">示範模式：用 <b>demo@juchang.app</b>（密碼隨意）登入，或註冊一個新帳號。</p>` : ''}
-    <form class="f" data-form="auth">
-      ${mode === 'up' ? `<label>顯示名稱<input id="au-name" name="name" required maxlength="30"></label>` : ''}
-      <label>Email<input id="au-email" name="email" type="email" required autocomplete="email"></label>
-      <label>密碼<input id="au-pw" name="password" type="password" required minlength="6" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>
-      <div id="form-err"></div>
-      <button class="btn primary">${mode === 'in' ? '登入' : '註冊'}</button>
-      <button type="button" class="btn ghost" data-act="authmode">${mode === 'in' ? '還沒有帳號？註冊' : '已經有帳號？登入'}</button>
-    </form></div>`;
-}
-
-/* ---------- 首頁：我的社群＋探索 ---------- */
-function communityCard(c) {
-  const m = memOf(c.id);
-  const status = m?.status === 'active' ? `<span class="tag">已加入 · 等級 ${levelFor(m.points)}</span>` : m?.status === 'pending' ? '<span class="tag">審核中</span>' : '';
-  const i = Math.abs([...c.slug].reduce((s, ch) => s + ch.charCodeAt(0), 0)) % COVER_BG.length;
-  return `<a class="card ccard" href="#c--${esc(c.slug)}--${m?.status === 'active' ? 'feed' : 'about'}">
-    <div class="cover" style="background:${COVER_BG[i]}">${esc(c.name.charAt(0))}</div>
-    <h3>${esc(c.name)}</h3>
-    <p class="muted small" style="margin:0">${esc(c.tagline || '')}</p>
-    <div class="row meta">${c.is_private ? '私密' : '公開'} · ${c.member_count} 位成員 · ${c.price_monthly ? `每月 NT$${c.price_monthly}` : '免費'} ${status}</div>
-  </a>`;
-}
-function homeView() {
-  const q = (S.ui.q || '').trim().toLowerCase();
-  const mine = S.communities.filter(c => memOf(c.id));
-  const others = S.communities.filter(c => !memOf(c.id) && (!q || (c.name + c.tagline).toLowerCase().includes(q)));
-  return `
-    <div class="hero"><div><h1>你的社群</h1><p class="muted" style="margin:4px 0 0">開一個社群，放課程、辦活動，讓成員用按讚互相升等。</p></div>
-      <a class="btn primary" href="#new">建立社群</a></div>
-    ${mine.length ? `<div class="cgrid">${mine.map(communityCard).join('')}</div>` : `<div class="card empty">你還沒有加入任何社群。從下面挑一個，或自己開一個。</div>`}
-    <div class="hero" style="margin-top:36px"><h2 style="margin:0;font-size:22px">探索社群</h2>
-      <input class="search" id="search" type="search" placeholder="搜尋社群名稱" value="${esc(S.ui.q || '')}" aria-label="搜尋社群"></div>
-    ${others.length ? `<div class="cgrid">${others.map(communityCard).join('')}</div>` : `<div class="card empty">${q ? '找不到符合的社群' : '目前沒有其他社群'}</div>`}`;
-}
-
-/* ---------- 建立社群 ---------- */
-function newCommunityView() {
-  return `<div style="max-width:560px;margin:0 auto" class="card">
-    <h2 style="font-size:22px">建立社群</h2>
-    <form class="f" data-form="community">
-      <label>社群名稱<input id="nc-name" name="name" required maxlength="60" placeholder="例如：財商覺醒俱樂部"></label>
-      <label>網址代稱（小寫英文、數字、-）<input id="nc-slug" name="slug" required pattern="[a-z0-9][a-z0-9\\-]{2,40}" placeholder="money-club"></label>
-      <label>一句話介紹<input id="nc-tag" name="tagline" maxlength="80"></label>
-      <label>完整介紹<textarea id="nc-desc" name="description"></textarea></label>
-      <label class="check"><input id="nc-private" type="checkbox" name="is_private"> 私密社群（加入需要審核）</label>
-      <div id="form-err"></div>
-      <div class="row"><button class="btn primary">建立</button><a class="btn ghost" href="#">取消</a></div>
-    </form></div>`;
-}
-
-/* ---------- 社群內頁 ---------- */
-async function communityView(r) {
-  const c = S.communities.find(x => x.slug === r.slug);
-  if (!c) return `<div class="card empty">找不到這個社群。<br><br><a class="btn" href="#">回到首頁</a></div>`;
-  const m = activeMem(c.id);
-  const tab = m ? r.tab : 'about';
-  const tabs = `<nav class="tabs" aria-label="社群分頁">${TABS.map(([k, label]) =>
-    `<a href="#c--${esc(c.slug)}--${k}" class="${!m && k !== 'about' ? 'off' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
-  const head = `<div class="chead"><div><h1>${esc(c.name)}</h1><p>${esc(c.tagline || '')}</p></div>
-    ${isRealAdmin(c.id) ? `<button class="btn sm ${S.preview ? 'primary' : ''}" data-act="preview" aria-pressed="${!!S.preview}">${S.preview ? '結束成員視角' : '以成員視角預覽'}</button>` : ''}</div>`;
-  let body = '';
-  if (tab === 'feed') body = await feedView(c, m);
-  else if (tab === 'classroom') body = await classroomView(c, m);
-  else if (tab === 'calendar') body = await calendarView(c, m);
-  else if (tab === 'members') body = await membersView(c, m);
-  else if (tab === 'leaderboard') body = await leaderboardView(c, m);
-  else body = aboutView(c, m);
-  return head + tabs + body;
-}
-
-function sideCard(c, m, top) {
-  const lp = levelProgress(m.points), names = levelNames(c);
-  return `<aside class="stack">
-    <div class="card">
-      <div class="row">${avatar(S.user, m.points)}<div><b>${esc(S.user.name)}</b><div class="small muted">等級 ${lp.level} · ${esc(names[lp.level-1])}</div></div></div>
-      <div class="prog" style="margin:12px 0 6px" role="progressbar" aria-valuenow="${lp.pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${lp.pct}%"></span></div>
-      <div class="small muted">${lp.level >= 9 ? '已達最高等級' : `再 ${lp.need} 分升到等級 ${lp.level+1}`} · 目前 ${m.points} 分</div>
-    </div>
-    <div class="card lb"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3>30 天排行</h3><a class="small" href="#c--${esc(c.slug)}--leaderboard">全部</a></div>
-      ${top.length ? `<ol>${top.slice(0, 5).map((r, i) => `<li><span class="rank ${i < 3 ? 'top' : ''}">${i+1}</span>${avatar({ id: r.user_id, name: r.name }, r.total_points, true)}<span class="name">${esc(r.name)}</span><span class="pts">+${r.points}</span></li>`).join('')}</ol>` : '<p class="muted small">還沒有分數</p>'}
-    </div>
-    <div class="card small"><b>${esc(c.name)}</b><p class="muted" style="margin:4px 0 8px">${esc(c.tagline || '')}</p><span class="muted">${c.member_count} 位成員 · ${c.is_private ? '私密' : '公開'}</span></div>
-  </aside>`;
-}
-
-async function feedView(c, m) {
-  const [posts, cats, top, members] = await Promise.all([api.listPosts(c.id), api.listCategories(c.id), api.leaderboard(c.id, 30), api.listMembers(c.id)]);
-  const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
-  const f = S.ui.cat || 'all';
-  const shown = posts.filter(p => f === 'all' || p.category_id === f);
-  const catName = id => cats.find(x => x.id === id)?.name || '';
-  const admin = isAdminOf(c.id);
-  const composer = S.ui.composing
-    ? `<form class="card f" data-form="post" data-cid="${c.id}">
-        <input id="np-title" name="title" required maxlength="200" placeholder="標題">
-        <textarea id="np-body" name="body" placeholder="想分享什麼？"></textarea>
-        <div class="row"><select id="np-cat" name="category_id" style="flex:1 1 160px" aria-label="分類">${cats.filter(x => admin || !x.admin_only).map(x => `<option value="${x.id}" ${x.name === '一般討論' ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-        <button type="button" class="btn ghost" data-act="compose-off">取消</button><button class="btn primary">發布</button></div>
-        <div id="form-err"></div></form>`
-    : `<button class="composer-btn" data-act="compose">${avatar(S.user, m.points, true)}寫點什麼…</button>`;
-  const list = shown.length ? shown.map(p => `
-    <article class="card post" data-act="open-post" data-id="${p.id}" tabindex="0">
-      <div class="row">${avatar(p.author, pts[p.author.id] ?? 0)}<div><b>${esc(p.author.name)}</b><div class="meta">${ago(p.created_at)} · <span class="tag">${esc(catName(p.category_id))}</span> ${p.pinned ? '<span class="pin">置頂</span>' : ''}</div></div></div>
-      <h3>${esc(p.title)}</h3><p class="ex">${esc(p.body)}</p>
-      <div class="acts"><button class="like ${p.liked ? 'on' : ''}" data-act="like" data-type="post" data-id="${p.id}" aria-pressed="${p.liked}" aria-label="按讚">${heart}${p.like_count}</button>
-      <span class="like" aria-hidden="true">💬 ${p.comment_count}</span></div>
-    </article>`).join('') : `<div class="card empty">這個分類還沒有貼文，當第一個發文的人吧。</div>`;
-  return `<div class="grid2"><section class="stack">${composer}
-    <div class="filters" role="group" aria-label="分類篩選"><button data-act="cat" data-id="all" aria-pressed="${f === 'all'}">全部</button>${cats.map(x => `<button data-act="cat" data-id="${x.id}" aria-pressed="${f === x.id}">${esc(x.name)}</button>`).join('')}</div>
-    ${list}</section>${sideCard(c, m, top)}</div>`;
-}
-
-/* ---------- 貼文詳情（彈窗） ---------- */
-async function renderModal() {
-  const root = document.getElementById('modal-root');
-  const id = S.ui.post;
-  if (!id) { root.innerHTML = ''; return; }
-  const r = parseRoute(); const c = S.communities.find(x => x.slug === r.slug);
-  if (!c) { S.ui.post = null; root.innerHTML = ''; return; }
-  const [posts, comments, members, cats] = await Promise.all([api.listPosts(c.id), api.listComments(id), api.listMembers(c.id), api.listCategories(c.id)]);
-  const p = posts.find(x => x.id === id);
-  if (!p) { S.ui.post = null; root.innerHTML = ''; return; }
-  const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
-  const admin = isAdminOf(c.id), mine = p.author.id === S.user.id;
-  const cmt = x => `<div class="cmt ${x.parent_id ? 'reply' : ''}">${avatar(x.author, pts[x.author.id] ?? 0, true)}<div style="min-width:0"><div class="bubble"><b class="small">${esc(x.author.name)}</b><p>${esc(x.body)}</p></div>
-    <div class="row small" style="gap:2px;margin-top:2px"><button class="like ${x.liked ? 'on' : ''}" data-act="like" data-type="comment" data-id="${x.id}" aria-pressed="${x.liked}" aria-label="按讚">${heart}${x.like_count}</button>
-    ${x.parent_id ? '' : `<button class="btn ghost sm" data-act="reply" data-id="${x.id}">回覆</button>`}<span class="muted">${ago(x.created_at)}</span></div>
-    ${S.ui.replyTo === x.id ? `<form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}" data-parent="${x.id}" style="margin-top:6px"><textarea id="reply-body" name="body" required style="min-height:70px" placeholder="回覆 ${esc(x.author.name)}"></textarea><div class="row"><button class="btn primary sm">送出回覆</button></div></form>` : ''}</div></div>`;
-  const tops = comments.filter(x => !x.parent_id);
-  root.innerHTML = `<div class="overlay" data-act="close-modal"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(p.title)}" data-stop>
-    <button class="btn ghost sm x" data-act="close-modal" aria-label="關閉">✕</button>
-    <div class="row">${avatar(p.author, pts[p.author.id] ?? 0)}<div><b>${esc(p.author.name)}</b><div class="meta">${ago(p.created_at)} · ${esc(cats.find(x => x.id === p.category_id)?.name || '')}</div></div></div>
-    <h2>${esc(p.title)}</h2><p class="post-body">${esc(p.body)}</p>
-    <div class="row"><button class="like ${p.liked ? 'on' : ''}" data-act="like" data-type="post" data-id="${p.id}" aria-pressed="${p.liked}" aria-label="按讚">${heart}${p.like_count}</button>
-      <span class="spacer"></span>${admin ? `<button class="btn ghost sm" data-act="pin" data-id="${p.id}">${p.pinned ? '取消置頂' : '置頂'}</button>` : ''}
-      ${admin || mine ? `<button class="btn ghost sm danger" data-act="del-post" data-id="${p.id}">${S.ui.confirmDel === p.id ? '確定刪除？' : '刪除'}</button>` : ''}</div>
-    <div class="cmts">${tops.map(t => cmt(t) + comments.filter(x => x.parent_id === t.id).map(cmt).join('')).join('') || '<p class="muted small" style="margin:0">還沒有留言</p>'}
-      <form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}"><textarea id="cm-body" name="body" required style="min-height:70px" placeholder="留言…"></textarea><div class="row"><button class="btn primary sm">留言</button></div></form>
-    </div></div></div>`;
-}
-
-/* ---------- 課程 ---------- */
-function courseAccess(c, course, m, module) {
-  if (isAdminOf(c.id)) return { ok: true };
-  const lv = levelFor(m.points);
-  if (lv < course.unlock_level) return { ok: false, why: `等級 ${course.unlock_level}「${levelNames(c)[course.unlock_level-1]}」解鎖` };
-  if (module && module.drip_days) {
-    const openAt = new Date(m.joined_at).getTime() + module.drip_days * 86400000;
-    if (Date.now() < openAt) return { ok: false, why: `入會第 ${module.drip_days} 天開放（${new Date(openAt).toLocaleDateString('zh-TW')}）` };
-  }
-  return { ok: true };
-}
-async function classroomView(c, m) {
-  const [courses, done] = await Promise.all([api.listCourses(c.id), api.listProgress()]);
-  const doneSet = new Set(done), admin = isAdminOf(c.id);
-  const open = courses.find(k => k.id === S.ui.course);
-  if (!open) {
-    const cards = courses.map((k, i) => {
-      const acc = courseAccess(c, k, m); const all = k.modules.flatMap(x => x.lessons);
-      const pct = all.length ? Math.round(all.filter(l => doneSet.has(l.id)).length / all.length * 100) : 0;
-      return `<button class="card ccard" style="text-align:left;cursor:${acc.ok ? 'pointer' : 'default'}" ${acc.ok ? `data-act="open-course" data-id="${k.id}"` : 'aria-disabled="true"'}>
-        <div class="cover" style="background:${COVER_BG[i % COVER_BG.length]}">${esc(k.title.charAt(0))}${acc.ok ? '' : `<div class="lock">🔒 ${esc(acc.why)}</div>`}</div>
-        <h3>${esc(k.title)}${k.published ? '' : ' <span class="tag">草稿</span>'}</h3><p class="muted small" style="margin:0">${esc(k.description || '')}</p>
-        ${acc.ok ? `<div class="prog" aria-label="完成度 ${pct}%"><span style="width:${pct}%"></span></div><span class="small muted">完成 ${pct}%</span>` : ''}
-      </button>`;
-    }).join('');
-    return `${courses.length ? `<div class="cgrid">${cards}</div>` : `<div class="card empty">還沒有課程${admin ? '，用下面的表單新增第一堂。' : '。'}</div>`}
-      ${admin ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增課程（管理員）</summary>
-        <form class="f" data-form="course" data-cid="${c.id}"><label>課程名稱<input id="nk-title" name="title" required></label>
-        <label>說明<input id="nk-desc" name="description"></label>
-        <label>解鎖等級<select id="nk-lv" name="unlock_level">${levelNames(c).map((n, i) => `<option value="${i+1}">等級 ${i+1}・${esc(n)}</option>`).join('')}</select></label>
-        <div id="form-err"></div><button class="btn primary">新增課程</button></form></details>` : ''}`;
-  }
-  const lessonsFlat = open.modules.flatMap(md => md.lessons.map(l => ({ ...l, module: md })));
-  const curId = S.ui.lesson && lessonsFlat.some(l => l.id === S.ui.lesson) ? S.ui.lesson : lessonsFlat.find(l => courseAccess(c, open, m, l.module).ok)?.id;
-  const lesson = curId ? await api.getLesson(curId) : null;
-  const curMod = lessonsFlat.find(l => l.id === curId)?.module;
-  const acc = curMod ? courseAccess(c, open, m, curMod) : { ok: true };
-  const isUrl = u => /^https?:\/\//.test(u || '');
-  const video = lesson && isUrl(lesson.video_url)
-    ? (api.mode === 'supabase' && /youtube\.com\/watch\?v=|youtu\.be\//.test(lesson.video_url)
-        ? `<iframe class="vframe" src="https://www.youtube.com/embed/${esc((lesson.video_url.match(/(?:v=|youtu\.be\/)([\w-]{6,})/) || [])[1] || '')}" allowfullscreen title="課程影片"></iframe>`
-        : `<div class="video">▶<div><b>課程影片</b><div class="small"><a href="${esc(lesson.video_url)}" target="_blank" rel="noopener">${esc(lesson.video_url)}</a></div></div></div>`)
-    : '';
-  return `<div class="row" style="margin-bottom:14px"><button class="btn ghost sm" data-act="close-course">← 所有課程</button><h2 style="margin:0">${esc(open.title)}</h2></div>
-    <div class="course-layout"><aside class="card">
-      ${open.modules.map(md => { const a = courseAccess(c, open, m, md); return `<div class="mod"><h4>${esc(md.title)}${a.ok ? '' : ` 🔒`}</h4>
-        ${a.ok ? md.lessons.map(l => `<button class="lesson-link" data-act="open-lesson" data-id="${l.id}" aria-current="${l.id === curId}"><span class="dot ${doneSet.has(l.id) ? 'done' : ''}"></span>${esc(l.title)}</button>`).join('') || '<p class="small muted" style="margin:0 8px">尚無單元</p>'
-          : `<p class="small muted" style="margin:0 8px">${esc(a.why)}</p>`}</div>`; }).join('') || '<p class="muted small">還沒有章節</p>'}
-      ${admin ? `<details class="admin-box"><summary>＋ 新增章節</summary><form class="f" data-form="module" data-course="${open.id}">
-        <input id="nm-title" name="title" required placeholder="章節名稱"><label>入會滿幾天才開放（0 = 立即）<input id="nm-drip" name="drip_days" type="number" min="0" value="0"></label><button class="btn primary sm">新增</button></form></details>` : ''}
-    </aside>
-    <section class="card">${lesson && acc.ok ? `<h2 style="font-size:20px">${esc(lesson.title)}</h2>${video}<div class="lesson-body">${esc(lesson.body || '')}</div>
-      <div class="row" style="margin-top:18px"><button class="btn ${doneSet.has(lesson.id) ? '' : 'primary'}" data-act="complete" data-id="${lesson.id}">${doneSet.has(lesson.id) ? '✓ 已完成（點擊取消）' : '標記為完成'}</button></div>`
-      : `<div class="empty">${lessonsFlat.length ? '選一個單元開始' : '這門課還沒有單元'}</div>`}
-      ${admin && open.modules.length ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增單元</summary><form class="f" data-form="lesson" data-cid="${c.id}" data-course="${open.id}">
-        <label>章節<select id="nl-mod" name="module_id">${open.modules.map(md => `<option value="${md.id}">${esc(md.title)}</option>`).join('')}</select></label>
-        <label>單元名稱<input id="nl-title" name="title" required></label><label>影片網址（選填）<input id="nl-video" name="video_url" type="url" placeholder="https://"></label>
-        <label>內容<textarea id="nl-body" name="body"></textarea></label><div id="form-err"></div><button class="btn primary sm">新增單元</button></form></details>` : ''}
-    </section></div>`;
-}
-
-/* ---------- 行事曆 ---------- */
-async function calendarView(c, m) {
-  const events = await api.listEvents(c.id), admin = isAdminOf(c.id);
-  const now = Date.now();
-  const upcoming = events.filter(e => new Date(e.starts_at).getTime() + e.duration_min * 60000 >= now);
-  const past = events.filter(e => !upcoming.includes(e)).reverse();
-  const wd = ['日','一','二','三','四','五','六'];
-  const ev = e => { const d = new Date(e.starts_at), end = new Date(d.getTime() + e.duration_min * 60000);
-    const t = x => x.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-    return `<div class="card ev"><div class="date"><span>${d.getMonth()+1} 月</span><b>${d.getDate()}</b><span>週${wd[d.getDay()]}</span></div>
-      <div style="min-width:0"><h3>${esc(e.title)}</h3><div class="meta">${t(d)}–${t(end)} · ${e.going_count} 人參加</div>
-      ${e.description ? `<p style="margin:6px 0 0;white-space:pre-wrap">${esc(e.description)}</p>` : ''}
-      ${e.location_url ? `<div class="small" style="margin-top:4px">連結：<a href="${esc(e.location_url)}" target="_blank" rel="noopener">${esc(e.location_url)}</a></div>` : ''}</div>
-      <div class="ev-act">${new Date(e.starts_at).getTime() > now ? `<button class="btn ${e.going ? '' : 'primary'} sm" data-act="rsvp" data-id="${e.id}">${e.going ? '✓ 已報名' : '我要參加'}</button>` : ''}</div></div>`; };
-  return `<div class="stack"><h2>即將舉行</h2>${upcoming.map(ev).join('') || '<div class="card empty">目前沒有排定的活動</div>'}
-    ${admin ? `<details class="admin-box"><summary>＋ 新增活動（管理員）</summary><form class="f" data-form="event" data-cid="${c.id}">
-      <label>活動名稱<input id="ne-title" name="title" required></label>
-      <div class="inline"><label>開始時間<input id="ne-start" name="starts_at" type="datetime-local" required></label><label>長度（分鐘）<input id="ne-dur" name="duration_min" type="number" min="15" step="15" value="60"></label></div>
-      <label>線上會議連結（選填）<input id="ne-url" name="location_url" type="url" placeholder="https://"></label>
-      <label>說明<textarea id="ne-desc" name="description"></textarea></label><div id="form-err"></div><button class="btn primary">新增活動</button></form></details>` : ''}
-    ${past.length ? `<h2 style="margin-top:14px">過去的活動</h2>${past.map(ev).join('')}` : ''}</div>`;
-}
-
-/* ---------- 成員 ---------- */
-async function membersView(c, m) {
-  const all = await api.listMembers(c.id), admin = isAdminOf(c.id), names = levelNames(c);
-  const pending = all.filter(x => x.status === 'pending'), active = all.filter(x => x.status === 'active').sort((a, b) => b.points - a.points);
-  const role = r => ({ owner: '擁有者', admin: '管理員', member: '成員' }[r]);
-  return `<div class="stack">
-    ${admin && pending.length ? `<div class="card"><h2>待審核（${pending.length}）</h2>${pending.map(x => `<div class="row" style="padding:6px 0">${avatar({ id: x.user_id, name: x.name }, null)}<b class="name" style="flex:1">${esc(x.name)}</b><span class="small muted">${ago(x.joined_at)}申請</span>
-      <button class="btn primary sm" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="active">核准</button><button class="btn sm" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="removed">拒絕</button></div>`).join('')}</div>` : ''}
-    <div class="card"><h2>成員（${active.length}）</h2>${active.map(x => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">${avatar({ id: x.user_id, name: x.name }, x.points)}
-      <div style="flex:1;min-width:0"><b class="name">${esc(x.name)}</b><div class="small muted">${role(x.role)} · 等級 ${levelFor(x.points)}「${esc(names[levelFor(x.points)-1])}」 · ${x.points} 分 · ${new Date(x.joined_at).toLocaleDateString('zh-TW')} 加入</div></div>
-      ${admin && x.role === 'member' ? `<button class="btn ghost sm danger" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="removed">移除</button>` : ''}</div>`).join('')}</div></div>`;
-}
-
-/* ---------- 排行榜＋等級表 ---------- */
-async function leaderboardView(c, m) {
-  const range = S.ui.range ?? 30;
-  const [rows, members, courses] = await Promise.all([api.leaderboard(c.id, range || null), api.listMembers(c.id), api.listCourses(c.id)]);
-  const names = levelNames(c), active = members.filter(x => x.status === 'active'), myLv = levelFor(m.points);
-  const counts = Array(9).fill(0); active.forEach(x => counts[levelFor(x.points)-1]++);
-  return `<div class="grid2"><section class="card lb">
-      <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">排行榜</h2>
-      <div class="seg" role="group" aria-label="期間">${[[7,'7 天'],[30,'30 天'],[0,'全期']].map(([d, l]) => `<button data-act="range" data-d="${d}" aria-pressed="${range === d}">${l}</button>`).join('')}</div></div>
-      ${rows.length ? `<ol>${rows.map((r, i) => `<li><span class="rank ${i < 3 ? 'top' : ''}">${i+1}</span>${avatar({ id: r.user_id, name: r.name }, r.total_points, true)}<span class="name">${esc(r.name)}${r.user_id === S.user.id ? '（你）' : ''}</span><span class="pts">${range ? '+' : ''}${r.points}</span></li>`).join('')}</ol>` : '<p class="muted">還沒有分數</p>'}
-      <p class="small muted" style="margin:12px 0 0">別人幫你的貼文或留言按一個讚 = 1 分。</p>
-    </section>
-    <aside class="card"><h2>等級與解鎖</h2><div class="scroll"><table class="ladder"><thead><tr><th>等級</th><th>分數</th><th>人數</th></tr></thead><tbody>
-      ${names.map((n, i) => { const unlocks = courses.filter(k => k.unlock_level === i+1).map(k => k.title);
-        return `<tr class="${myLv === i+1 ? 'me' : ''}"><td><b>${i+1}・${esc(n)}</b>${unlocks.length ? `<div class="small muted">解鎖：${unlocks.map(esc).join('、')}</div>` : ''}</td><td class="num">${LEVEL_PTS[i].toLocaleString()}</td><td class="num">${counts[i]}</td></tr>`; }).join('')}
-    </tbody></table></div></aside></div>`;
-}
-
-/* ---------- 關於 / 加入 ---------- */
-function aboutView(c, m) {
-  const mm = memOf(c.id);
-  const cta = m ? (m.role === 'owner' ? '<span class="tag">你是這個社群的擁有者</span>' : `<button class="btn" data-act="leave" data-cid="${c.id}">${S.ui.confirmLeave ? '確定退出？' : '退出社群'}</button>`)
-    : mm?.status === 'pending' ? '<span class="tag">已送出申請，等待版主審核</span>'
-    : `<button class="btn primary" data-act="join" data-cid="${c.id}">${c.is_private ? '申請加入' : '加入社群'}${c.price_monthly ? `（每月 NT$${c.price_monthly}）` : '（免費）'}</button>`;
-  return `<div class="grid2"><section class="card"><h2>關於這個社群</h2><p style="white-space:pre-wrap;margin-top:0">${esc(c.description || '版主還沒有寫介紹。')}</p><div class="row" style="margin-top:16px">${cta}</div></section>
-    <aside class="card"><dl class="kv"><dt>成員</dt><dd>${c.member_count} 位</dd><dt>類型</dt><dd>${c.is_private ? '私密（需審核）' : '公開'}</dd><dt>費用</dt><dd>${c.price_monthly ? `每月 NT$${c.price_monthly}` : '免費'}</dd><dt>建立</dt><dd>${new Date(c.created_at).toLocaleDateString('zh-TW')}</dd></dl></aside></div>`;
-}
-
-/* =====================================================================
-   事件處理
-   ===================================================================== */
-async function act(fn, msg) {
-  try { await fn(); if (msg) toast(msg); await render(); }
-  catch (e) { toast(e.message); }
-}
-document.addEventListener('click', e => {
-  const el = e.target.closest('[data-act]');
-  if (!el) return;
-  const a = el.dataset.act, id = el.dataset.id;
-  if (a === 'close-modal' && e.target.closest('[data-stop]') && !e.target.closest('.x')) return;
-  if (el.tagName === 'A') return;
-  e.preventDefault();
-  if (a !== 'like' && a !== 'open-post') e.stopPropagation();
-  switch (a) {
-    case 'home': return go('');
-    case 'signout': return act(() => api.signOut());
-    case 'reset': if (S.ui.confirmReset) { S.ui = {}; return act(() => api.reset(), '已重設範例資料'); } S.ui.confirmReset = true; el.textContent = '確定重設？'; setTimeout(() => { S.ui.confirmReset = false; renderTop(); }, 3000); return;
-    case 'authmode': S.ui.authMode = S.ui.authMode === 'up' ? 'in' : 'up'; return render();
-    case 'compose': S.ui.composing = true; return render().then(() => document.getElementById('np-title')?.focus());
-    case 'compose-off': S.ui.composing = false; return render();
-    case 'cat': S.ui.cat = id; return render();
-    case 'open-post': if (e.target.closest('[data-act="like"]')) return; S.ui.post = id; S.ui.replyTo = null; S.ui.confirmDel = null; return renderModal();
-    case 'close-modal': S.ui.post = null; return render();
-    case 'like': e.stopPropagation(); return act(() => api.toggleLike(el.dataset.type, id));
-    case 'reply': S.ui.replyTo = S.ui.replyTo === id ? null : id; return renderModal().then(() => document.getElementById('reply-body')?.focus());
-    case 'pin': return act(() => api.togglePin(id));
-    case 'del-post': if (S.ui.confirmDel !== id) { S.ui.confirmDel = id; return renderModal(); } S.ui.post = null; S.ui.confirmDel = null; return act(() => api.deletePost(id), '已刪除貼文');
-    case 'open-course': S.ui.course = id; S.ui.lesson = null; return render();
-    case 'close-course': S.ui.course = null; return render();
-    case 'open-lesson': S.ui.lesson = id; return render();
-    case 'complete': return act(() => api.toggleComplete(id));
-    case 'rsvp': return act(() => api.toggleRsvp(id));
-    case 'preview': S.preview = !S.preview; S.ui.course = null; return render().then(() => toast(S.preview ? '現在看到的是一般成員的畫面' : '已回到管理員畫面'));
-    case 'range': S.ui.range = Number(el.dataset.d); return render();
-    case 'member': return act(() => api.setMemberStatus(el.dataset.cid, el.dataset.uid, el.dataset.status), el.dataset.status === 'active' ? '已核准' : '已移除');
-    case 'join': return act(async () => { const st = await api.join(el.dataset.cid); if (st === 'active') { const c = S.communities.find(x => x.id === el.dataset.cid); location.hash = `c--${c.slug}--feed`; } }, '已送出');
-    case 'leave': if (!S.ui.confirmLeave) { S.ui.confirmLeave = true; return render(); } S.ui.confirmLeave = false; return act(() => api.leave(el.dataset.cid), '已退出社群');
-  }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && S.ui.post) { S.ui.post = null; render(); }
-  if (e.key === 'Enter' && e.target.matches('article.post')) { S.ui.post = e.target.dataset.id; renderModal(); }
-});
-document.addEventListener('input', e => {
-  if (e.target.id === 'search') {
-    S.ui.q = e.target.value; const pos = e.target.selectionStart;
-    document.getElementById('app').innerHTML = homeView();
-    const s = document.getElementById('search'); s.focus(); s.setSelectionRange(pos, pos);
-  }
-});
-document.addEventListener('submit', async e => {
-  const f = e.target.closest('form[data-form]'); if (!f) return;
-  e.preventDefault();
-  const d = Object.fromEntries(new FormData(f)), kind = f.dataset.form;
-  const errBox = f.querySelector('#form-err');
-  const btn = f.querySelector('button:not([type="button"])'); if (btn) btn.disabled = true;
-  try {
-    if (kind === 'auth') { if (S.ui.authMode === 'up') await api.signUp(d.email, d.password, d.name); else await api.signIn(d.email, d.password); S.ui = {}; }
-    if (kind === 'community') {
-      const c = await api.createCommunity({ name: d.name.trim(), slug: d.slug.trim().toLowerCase(), tagline: d.tagline.trim(), description: d.description.trim(), is_private: !!d.is_private });
-      S.ui = {}; location.hash = `c--${c.slug}--feed`; toast('社群建立好了'); return;
-    }
-    if (kind === 'post') { await api.createPost({ community_id: f.dataset.cid, title: d.title.trim(), body: d.body.trim(), category_id: d.category_id }); S.ui.composing = false; toast('已發布'); }
-    if (kind === 'comment') { await api.createComment({ post_id: f.dataset.post, community_id: f.dataset.cid, parent_id: f.dataset.parent || null, body: d.body.trim() }); S.ui.replyTo = null; }
-    if (kind === 'course') { const k = await api.createCourse({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), unlock_level: Number(d.unlock_level) }); S.ui.course = k.id; toast('已新增課程'); }
-    if (kind === 'module') { await api.createModule({ course_id: f.dataset.course, title: d.title.trim(), drip_days: Number(d.drip_days) || 0 }); toast('已新增章節'); }
-    if (kind === 'lesson') { const l = await api.createLesson({ community_id: f.dataset.cid, course_id: f.dataset.course, module_id: d.module_id, title: d.title.trim(), video_url: d.video_url.trim(), body: d.body }); S.ui.lesson = l?.id || null; toast('已新增單元'); }
-    if (kind === 'event') { await api.createEvent({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), starts_at: new Date(d.starts_at).toISOString(), duration_min: Number(d.duration_min) || 60, location_url: d.location_url.trim() }); toast('已新增活動'); }
-    await render();
-  } catch (err) {
-    if (errBox) errBox.innerHTML = `<p class="err">${esc(err.message)}</p>`; else toast(err.message);
-    if (btn) btn.disabled = false;
-  }
-});
-window.addEventListener('hashchange', () => { S.ui = { authMode: S.ui.authMode }; render(); });
-render();
+(function () {
+  const P = [0, 5, 20, 65, 155, 515, 2015, 8015, 33015];
+  const NAMES = ['新手', '學徒', '行動者', '實踐者', '推手', '導師', '領航者', '大師', '傳奇'];
+  // 用對數比例畫台階，等級 1 給一個最低高度
+  const h = p => 12 + 88 * Math.log10(p + 1) / Math.log10(33016);
+  document.getElementById('stairs').innerHTML = P.map((p, i) => `<div class="st" style="height:${h(p).toFixed(1)}%" title="等級 ${i + 1}「${NAMES[i]}」：${p.toLocaleString()} 分"><b>${i + 1}</b></div>`).join('');
+  document.getElementById('stairs-axis').innerHTML = P.map(p => `<span>${p >= 1000 ? (p / 1000).toFixed(p >= 10000 ? 0 : 1) + 'k' : p}</span>`).join('');
+  document.getElementById('stairs-table').innerHTML = P.map((p, i) => `<tr><th>等級 ${i + 1} ${NAMES[i]}</th><td>${p} 分</td></tr>`).join('');
+  document.getElementById('footer').innerHTML = `<span>© ${new Date().getFullYear()} 聚場</span><a class="ver" href="changelog.html">v${window.JC_VERSION}</a>
+    <span class="spacer"></span><a href="app.html">登入</a><a href="changelog.html">版本紀錄</a><a href="#faq">常見問題</a>`;
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 10), { passive: true });
+})();
 </script>
+
+</body>
+</html>

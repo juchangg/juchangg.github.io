@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>聚場社群</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=LXGW+WenKai+TC:wght@700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/brand.css">
+<style>
+/* Layout: 頂部列 → 社群主題色橫幅 → 分頁 → 主欄＋側欄；後台為「左側選單＋內容」 */
+main { padding-block: 24px 40px; min-height: 60vh }
+.hello { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px }
+.hello h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 34px); margin: 0 }
+.hello p { margin: 4px 0 0; color: var(--muted) }
+.section-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 34px 0 14px }
+.section-h h2 { margin: 0; font-size: 21px }
+.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px }
+.ccard { display: flex; flex-direction: column; text-decoration: none; color: inherit; overflow: hidden; padding: 0; transition: transform .15s, box-shadow .15s }
+.ccard:hover { transform: translateY(-2px); box-shadow: var(--shadow) }
+.ccard .cover { aspect-ratio: 16/7; max-width: 100%; display: flex; align-items: flex-end; justify-content: space-between; padding: 12px 14px; position: relative }
+.ccard .cover b { font-family: var(--f-display); font-size: 40px; line-height: 1; opacity: .9 }
+.ccard .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1 }
+.ccard h3 { margin: 0; font-size: 17px }
+.ccard p { margin: 0; color: var(--muted); font-size: 14px }
+.ccard .meta { margin-top: auto; padding-top: 6px; font-size: 13px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center }
+.filters { display: flex; flex-wrap: wrap; gap: 6px }
+.filters button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 5px 13px; cursor: pointer; font-size: 13px }
+.filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink) }
+.search { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 8px 16px; width: min(300px, 100%) }
+
+.c-hero { border-radius: var(--r); background: var(--theme, var(--sun)); padding: 22px 24px; display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; flex-wrap: wrap; position: relative; overflow: hidden }
+.c-hero::after { content: ""; position: absolute; right: -40px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.22); pointer-events: none }
+.c-hero h1 { margin: 6px 0 2px; font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px) }
+.c-hero p { margin: 0; color: var(--ink-2) }
+.c-hero .chip { background: rgba(255,255,255,.7); border-color: transparent }
+.c-hero .meta { font-size: 13px; color: var(--ink-2); margin-top: 8px }
+.c-hero > * { position: relative; z-index: 1 }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); margin: 14px 0 22px }
+.tabs a { padding: 10px 14px; text-decoration: none; color: var(--muted); font-weight: 500; border-bottom: 3px solid transparent; margin-bottom: -1px }
+.tabs a:hover { color: var(--ink) }
+.tabs a[aria-current="page"] { color: var(--ink); border-color: var(--sun) }
+.tabs a.off { opacity: .4; pointer-events: none }
+.tabs a.admin-tab { margin-left: auto; color: var(--ink-2) }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start }
+@media (max-width: 880px) { .grid2 { grid-template-columns: minmax(0, 1fr) } }
+.post { cursor: pointer; transition: border-color .15s }
+.post:hover { border-color: var(--line-strong) }
+.post h3 { margin: 10px 0 4px; font-size: 17px }
+.post .ex { color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0 }
+.meta { font-size: 13px; color: var(--muted) }
+.pin { font-size: 12px; color: var(--sun-ink); background: var(--sun-soft); padding: 1px 8px; border-radius: 999px; font-weight: 700 }
+.acts { display: flex; gap: 4px; margin-top: 10px; margin-left: -8px }
+.like { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px 9px; border-radius: 999px; font-size: 14px }
+.like:hover { background: var(--surface-2); color: var(--ink) }
+.like.on { color: var(--coral-ink); background: var(--coral-soft); font-weight: 700 }
+.like svg { width: 17px; height: 17px }
+.composer-btn { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 16px; color: var(--muted); cursor: text; display: flex; gap: 12px; align-items: center }
+.prog { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden }
+.prog > span { display: block; height: 100%; background: var(--sun) }
+.lb ol { list-style: none; margin: 0; padding: 0 }
+.lb li { display: grid; grid-template-columns: 26px 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line) }
+.lb li:last-child { border-bottom: 0 }
+.rank { font: 700 15px var(--f-num); color: var(--muted); text-align: center }
+.rank.top { color: var(--ink); background: var(--sun); border-radius: 50%; width: 24px; height: 24px; line-height: 24px; font-size: 13px }
+.pts { font: 700 15px var(--f-num); font-variant-numeric: tabular-nums }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500 }
+.course-cover { aspect-ratio: 16/7; max-width: 100%; border-radius: var(--r-sm); display: grid; place-items: center; font: 700 34px var(--f-display); position: relative; overflow: hidden }
+.course-cover .lock { position: absolute; inset: 0; background: rgba(23,23,28,.66); display: grid; place-items: center; font: 500 14px var(--f-body); color: var(--on-ink); text-align: center; padding: 8px }
+.course-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; align-items: start }
+@media (max-width: 880px) { .course-layout { grid-template-columns: minmax(0, 1fr) } }
+.mod { margin-bottom: 14px }
+.mod h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); letter-spacing: .04em }
+.lesson-link { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 8px; border-radius: var(--r-sm); cursor: pointer; font-size: 14px }
+.lesson-link:hover { background: var(--surface-2) }
+.lesson-link[aria-current="true"] { background: var(--sun-soft); font-weight: 700 }
+.dot { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid var(--line-strong) }
+.dot.done { background: var(--mint); border-color: var(--mint) }
+.lesson-body { white-space: pre-wrap }
+.video { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: var(--r-sm); background: var(--surface-2); margin: 12px 0; min-width: 0 }
+.video a { overflow-wrap: anywhere }
+.vframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: var(--r-sm); max-width: 100% }
+.ev { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start }
+@media (max-width: 560px) { .ev { grid-template-columns: 56px minmax(0, 1fr) } .ev > .ev-act { grid-column: 1 / -1 } }
+.date { text-align: center; border-radius: var(--r-sm); padding: 6px 0; background: var(--sun-soft) }
+.date b { display: block; font: 700 24px/1.1 var(--f-num) }
+.date span { font-size: 12px; color: var(--sun-ink) }
+.ev.past .date { background: var(--surface-2) }
+.ev.past .date span { color: var(--muted) }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden }
+.seg button { border: 0; background: var(--surface); padding: 6px 14px; cursor: pointer; font-size: 14px }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink) }
+.ladder tr.me td { background: var(--sun-soft) }
+.overlay { position: fixed; inset: 0; background: rgba(23,23,28,.5); z-index: 20; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 24px max(12px, env(safe-area-inset-left, 0px)) }
+.modal { background: var(--surface); border-radius: var(--r); width: 100%; max-width: 720px; padding: 22px; position: relative }
+.modal .x { position: absolute; right: 12px; top: 12px }
+.modal h2 { font-size: 22px; margin: 12px 0 8px; padding-right: 36px }
+.post-body { white-space: pre-wrap; margin: 0 0 6px }
+.cmts { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; display: flex; flex-direction: column; gap: 14px }
+.cmt { display: flex; gap: 10px }
+.cmt .bubble { background: var(--surface-2); border-radius: 12px; padding: 8px 12px; min-width: 0 }
+.cmt .bubble p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere }
+.reply { margin-left: 40px }
+.admin-box { border: 1px dashed var(--line-strong); border-radius: var(--r); padding: 12px 14px; background: var(--surface) }
+.admin-box summary { cursor: pointer; font-weight: 700 }
+.admin-box[open] summary { margin-bottom: 10px }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; margin: 0 }
+.kv dt { color: var(--muted) } .kv dd { margin: 0 }
+
+/* 後台 */
+.admin { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start }
+@media (max-width: 880px) { .admin { grid-template-columns: minmax(0, 1fr) } .admin nav { flex-direction: row; flex-wrap: wrap } }
+.admin nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px) }
+.admin nav button { text-align: left; border: 0; background: none; padding: 9px 12px; border-radius: var(--r-sm); cursor: pointer; font-size: 14px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px }
+.admin nav button:hover { background: var(--surface-2) }
+.admin nav button[aria-current="true"] { background: var(--ink); color: var(--on-ink); font-weight: 700 }
+.admin nav .cnt { background: var(--coral); color: var(--on-ink); border-radius: 999px; font: 700 11px/18px var(--f-num); padding: 0 7px }
+.admin h2 { margin: 0 0 4px; font-size: 21px }
+.admin .lead { margin: 0 0 18px; color: var(--muted) }
+.lv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px }
+.mrow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.mrow:last-child { border-bottom: 0 }
+.mrow .who { flex: 1 1 200px; min-width: 0 }
+.cat-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line) }
+.cat-row input[type=text] { flex: 1 1 180px }
+.invite-link { display: flex; gap: 8px; flex-wrap: wrap }
+.invite-link input { flex: 1 1 260px; font-family: var(--f-num); font-size: 14px }
+pre.msg { white-space: pre-wrap; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px 14px; margin: 0; font: inherit }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap" id="topbar"></div></header>
+<main class="wrap" id="app"><div class="loading">載入中…</div></main>
+<footer class="foot"><div class="wrap" id="footer"></div></footer>
+<div id="modal-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/changelog.js"></script>
+<script src="assets/demo-data.js"></script>
+<script src="assets/core.js"></script>
+<script>
+const { api, esc, ago, fmtDate, avatar, toast, levelFor, levelProgress, LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES, barChart } = JC;
+const S = { user: null, communities: [], memberships: [], isPA: false, dbv: null, preview: false, ui: {} };
+const TABS = [['feed', '社群'], ['classroom', '課程'], ['calendar', '行事曆'], ['members', '成員'], ['leaderboard', '排行榜'], ['about', '關於']];
+const ADMIN_SECS = [['overview', '數據總覽'], ['settings', '社群設定'], ['categories', '貼文分類'], ['members', '成員管理'], ['invite', '邀請成員'], ['danger', '刪除社群']];
+const heart = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 18.5 21H7V10l4.4-7.4A1.8 1.8 0 0 1 15 4.4z"/></svg>`;
+
+/* ---------- 路由 ---------- */
+function parseRoute() {
+  const h = location.hash.replace(/^#/, '');
+  if (h === 'new') return { view: 'new' };
+  if (h.startsWith('c--')) { const [, slug, tab] = h.split('--'); return { view: 'community', slug, tab: tab || 'feed' }; }
+  return { view: 'home' };
+}
+const memOf = cid => S.memberships.find(m => m.community_id === cid);
+const activeMem = cid => memOf(cid)?.status === 'active' ? memOf(cid) : null;
+const isRealAdmin = cid => ['owner', 'admin'].includes(activeMem(cid)?.role);
+const isOwner = cid => activeMem(cid)?.role === 'owner';
+const isAdminOf = cid => !S.preview && isRealAdmin(cid);
+const levelNames = c => (c.level_names && c.level_names.length === 9) ? c.level_names : DEFAULT_LEVEL_NAMES;
+const themeOf = c => c.theme_color || '#FFC933';
+
+async function refreshBase() {
+  S.user = await api.getUser();
+  if (!S.user) return;
+  [S.communities, S.memberships, S.isPA] = await Promise.all([api.listCommunities(), api.myMemberships(), api.isPlatformAdmin()]);
+  if (S.dbv == null) S.dbv = await api.dbVersion();
+}
+
+async function render() {
+  const app = document.getElementById('app');
+  try {
+    await refreshBase();
+    renderTop(); renderFooter();
+    if (!S.user) { app.innerHTML = authView(); return; }
+    const r = parseRoute();
+    let html = '';
+    if (S.dbv && JC.verLt(S.dbv, JC.CONFIG.DB_VERSION_REQUIRED))
+      html += `<p class="banner warn" style="margin:0 0 16px">資料庫目前是 v${esc(S.dbv)}，這版網站需要 v${esc(JC.CONFIG.DB_VERSION_REQUIRED)}。請到 Supabase 執行最新的升級 SQL（見版本紀錄）。</p>`;
+    if (r.view === 'new') html += newCommunityView();
+    else if (r.view === 'community') html += await communityView(r);
+    else html += homeView();
+    app.innerHTML = html;
+    await renderModal();
+  } catch (e) {
+    console.error(e);
+    app.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p><p><a class="btn" href="app.html">回到我的社群</a></p></div>`;
+  }
+}
+
+function renderTop() {
+  const r = parseRoute();
+  const c = r.view === 'community' ? S.communities.find(x => x.slug === r.slug) : null;
+  document.getElementById('topbar').innerHTML = `${JC.logo()}
+    ${c ? `<span class="crumb">／ <a href="app.html" style="color:inherit;text-decoration:none">我的社群</a> ／ ${esc(c.name)}</span>` : ''}
+    <span class="spacer"></span>
+    ${api.mode === 'demo' ? `<span class="chip sun" title="資料只存在這台瀏覽器">示範模式</span><button class="btn ghost sm" data-act="reset">重設示範資料</button>` : ''}
+    ${S.isPA ? `<a class="btn sm" href="console.html">總控台</a>` : ''}
+    ${S.user ? `<span class="user-chip">${avatar(S.user, null, 'sm')}<span class="name">${esc(S.user.name)}</span></span><button class="btn ghost sm" data-act="signout">登出</button>` : ''}`;
+}
+function renderFooter() {
+  document.getElementById('footer').innerHTML = `<span>© ${new Date().getFullYear()} ${esc(JC.CONFIG.APP_NAME)}</span>${JC.versionTag()}
+    <span class="spacer"></span><a href="./">關於聚場</a><a href="changelog.html">版本紀錄</a>${S.isPA ? '<a href="console.html">總控台</a>' : ''}`;
+}
+
+/* ---------- 登入 ---------- */
+function authView() {
+  const mode = S.ui.authMode || 'in';
+  return `<div style="max-width:420px;margin:30px auto" class="card">
+    <h1 style="font-family:var(--f-display);font-size:28px;margin:0 0 6px">${mode === 'in' ? '歡迎回來' : '建立你的帳號'}</h1>
+    <p class="muted" style="margin:0 0 16px">${mode === 'in' ? '登入後就能進入你的社群。' : '註冊免費，註冊後可以馬上開自己的社群。'}</p>
+    ${api.mode === 'demo' ? `<p class="banner small" style="margin:0 0 14px">示範模式：用 <b>demo@juchang.app</b>（密碼隨意）登入，或註冊一個新帳號。</p>` : ''}
+    <form class="f" data-form="auth">
+      ${mode === 'up' ? `<label>顯示名稱<input id="au-name" name="name" required maxlength="30" autocomplete="nickname"></label>` : ''}
+      <label>Email<input id="au-email" name="email" type="email" required autocomplete="email"></label>
+      <label>密碼<input id="au-pw" name="password" type="password" required minlength="6" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>
+      <div id="form-err"></div>
+      <button class="btn primary lg">${mode === 'in' ? '登入' : '免費註冊'}</button>
+      <button type="button" class="btn ghost" data-act="authmode">${mode === 'in' ? '還沒有帳號？免費註冊' : '已經有帳號？登入'}</button>
+    </form></div>`;
+}
+
+/* ---------- 首頁 ---------- */
+function communityCard(c) {
+  const m = memOf(c.id);
+  const status = m?.status === 'active' ? `<span class="chip mint">${m.role === 'owner' ? '我是擁有者' : m.role === 'admin' ? '管理員' : `等級 ${levelFor(m.points)}`}</span>`
+    : m?.status === 'pending' ? '<span class="chip">審核中</span>' : '';
+  return `<a class="card ccard" href="#c--${esc(c.slug)}--${m?.status === 'active' ? 'feed' : 'about'}">
+    <div class="cover" style="background:${esc(themeOf(c))}"><b>${esc(c.name.charAt(0))}</b>
+      <span class="row" style="gap:4px">${c.featured ? '<span class="chip" style="background:var(--ink);color:var(--sun);border:0">精選</span>' : ''}${c.status === 'suspended' ? '<span class="chip coral">已停權</span>' : ''}</span></div>
+    <div class="body"><h3>${esc(c.name)}</h3><p>${esc(c.tagline || '')}</p>
+      <div class="meta"><span class="chip">${esc(c.category || '其他')}</span>${c.is_private ? '<span class="chip grape">私密</span>' : ''}<span>${c.member_count} 位成員</span>${status}</div></div>
+  </a>`;
+}
+function homeView() {
+  const q = (S.ui.q || '').trim().toLowerCase(), cat = S.ui.cat0 || '全部';
+  const mine = S.communities.filter(c => memOf(c.id));
+  const others = S.communities.filter(c => !memOf(c.id) && c.status === 'active');
+  const cats = ['全部', ...CATEGORIES.filter(k => others.some(c => c.category === k))];
+  const shown = others.filter(c => (cat === '全部' || c.category === cat) && (!q || (c.name + (c.tagline || '')).toLowerCase().includes(q)));
+  return `
+    <div class="hello"><div><h1>嗨，${esc(S.user.name)}</h1><p>你加入的社群都在這裡。也可以開一個屬於你自己的。</p></div>
+      <a class="btn primary" href="#new">＋ 免費建立社群</a></div>
+    ${mine.length ? `<div class="cgrid">${mine.map(communityCard).join('')}</div>` : `<div class="card empty">你還沒有加入任何社群。從下面挑一個，或自己開一個。</div>`}
+    <div class="section-h"><h2>探索社群</h2><input class="search" id="search" type="search" placeholder="搜尋社群名稱" value="${esc(S.ui.q || '')}" aria-label="搜尋社群"></div>
+    <div class="filters" role="group" aria-label="主題分類" style="margin-bottom:14px">${cats.map(k => `<button data-act="cat0" data-id="${esc(k)}" aria-pressed="${k === cat}">${esc(k)}</button>`).join('')}</div>
+    ${shown.length ? `<div class="cgrid">${shown.map(communityCard).join('')}</div>` : `<div class="card empty">${q || cat !== '全部' ? '找不到符合的社群' : '你已經加入所有社群了'}</div>`}`;
+}
+
+/* ---------- 建立社群 ---------- */
+const swatches = (name, current) => `<div class="swatches" role="radiogroup" aria-label="主題色">${THEMES.map(([hex, label], i) =>
+  `<label><input type="radio" name="${name}" id="${name}-${i}" value="${hex}" ${hex === current ? 'checked' : ''}><span class="dot" style="background:${hex}"></span>${label}</label>`).join('')}</div>`;
+const catSelect = (id, current) => `<select id="${id}" name="category">${CATEGORIES.map(k => `<option ${k === current ? 'selected' : ''}>${k}</option>`).join('')}</select>`;
+function newCommunityView() {
+  return `<div style="max-width:620px;margin:0 auto" class="card">
+    <h1 style="font-family:var(--f-display);font-size:28px;margin:0 0 4px">建立你的社群</h1>
+    <p class="muted" style="margin:0 0 18px">公測期間免費。建立後你就是擁有者，可以隨時在「後台」修改這些設定。</p>
+    <form class="f" data-form="community">
+      <label>社群名稱<input id="nc-name" name="name" required maxlength="60" placeholder="例如：財商覺醒俱樂部"></label>
+      <label>網址代稱 <span class="hint">小寫英文、數字、「-」，建立後不能改</span><input id="nc-slug" name="slug" required pattern="[a-z0-9][a-z0-9\\-]{2,40}" placeholder="money-club"></label>
+      <label>一句話介紹<input id="nc-tag" name="tagline" maxlength="80" placeholder="成員一眼就知道這裡在做什麼"></label>
+      <label>主題分類${catSelect('nc-cat', '其他')}</label>
+      <label>主題色</label>${swatches('theme_color', '#FFC933')}
+      <label>完整介紹<textarea id="nc-desc" name="description" placeholder="這個社群適合誰？加入後可以得到什麼？"></textarea></label>
+      <label class="check"><input id="nc-private" type="checkbox" name="is_private"> 私密社群（加入需要審核）</label>
+      <div id="form-err"></div>
+      <div class="row"><button class="btn primary">建立社群</button><a class="btn ghost" href="app.html">取消</a></div>
+    </form></div>`;
+}
+
+/* ---------- 社群內頁 ---------- */
+async function communityView(r) {
+  const c = S.communities.find(x => x.slug === r.slug);
+  if (!c) return `<div class="card empty">找不到這個社群，可能已經被刪除或停權。<br><br><a class="btn" href="app.html">回到我的社群</a></div>`;
+  const m = activeMem(c.id), realAdmin = isRealAdmin(c.id);
+  let tab = m ? r.tab : 'about';
+  if (tab === 'admin' && (!realAdmin || S.preview)) tab = 'feed';
+  const tabs = `<nav class="tabs" aria-label="社群分頁">${TABS.map(([k, label]) =>
+    `<a href="#c--${esc(c.slug)}--${k}" class="${!m && k !== 'about' ? 'off' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${label}</a>`).join('')}
+    ${realAdmin && !S.preview ? `<a class="admin-tab" href="#c--${esc(c.slug)}--admin" ${tab === 'admin' ? 'aria-current="page"' : ''}>⚙ 後台</a>` : ''}</nav>`;
+  const hero = `<section class="c-hero" style="--theme:${esc(themeOf(c))}">
+    <div><span class="chip">${esc(c.category || '其他')}</span>${c.status === 'suspended' ? ' <span class="chip coral">已被平台停權</span>' : ''}
+      <h1>${esc(c.name)}</h1><p>${esc(c.tagline || '')}</p>
+      <div class="meta">${c.member_count} 位成員 · ${c.is_private ? '私密社群' : '公開社群'}</div></div>
+    ${realAdmin ? `<button class="btn sm ${S.preview ? 'dark' : ''}" data-act="preview" aria-pressed="${S.preview}">${S.preview ? '結束成員視角' : '以成員視角預覽'}</button>` : ''}
+  </section>`;
+  let body = '';
+  if (tab === 'feed') body = await feedView(c, m);
+  else if (tab === 'classroom') body = await classroomView(c, m);
+  else if (tab === 'calendar') body = await calendarView(c, m);
+  else if (tab === 'members') body = await membersView(c, m);
+  else if (tab === 'leaderboard') body = await leaderboardView(c, m);
+  else if (tab === 'admin') body = await adminView(c, m);
+  else body = aboutView(c, m);
+  return hero + tabs + body;
+}
+
+function sideCard(c, m, top) {
+  const lp = levelProgress(m.points), names = levelNames(c);
+  return `<aside class="stack">
+    <div class="card">
+      <div class="row">${avatar(S.user, m.points)}<div><b>${esc(S.user.name)}</b><div class="small muted">等級 ${lp.level}・${esc(names[lp.level - 1])}</div></div></div>
+      <div class="prog" style="margin:14px 0 6px" role="progressbar" aria-label="升級進度" aria-valuenow="${lp.pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${lp.pct}%"></span></div>
+      <div class="small muted">${lp.level >= 9 ? '已達最高等級' : `再 <b class="num" style="color:var(--ink)">${lp.need}</b> 分升到等級 ${lp.level + 1}`} · 目前 ${m.points} 分</div>
+    </div>
+    <div class="card lb"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0;font-size:16px">30 天排行</h3><a class="small" href="#c--${esc(c.slug)}--leaderboard">完整排行</a></div>
+      ${top.length ? `<ol>${top.slice(0, 5).map((r, i) => `<li><span class="rank ${i < 3 ? 'top' : ''}">${i + 1}</span>${avatar({ id: r.user_id, name: r.name }, r.total_points, 'sm')}<span class="name">${esc(r.name)}</span><span class="pts">+${r.points}</span></li>`).join('')}</ol>` : '<p class="muted small">還沒有分數</p>'}
+    </div>
+  </aside>`;
+}
+
+async function feedView(c, m) {
+  const [posts, cats, top, members] = await Promise.all([api.listPosts(c.id), api.listCategories(c.id), api.leaderboard(c.id, 30), api.listMembers(c.id)]);
+  const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
+  const f = S.ui.cat || 'all';
+  const shown = posts.filter(p => f === 'all' || p.category_id === f);
+  const catName = id => cats.find(x => x.id === id)?.name || '未分類';
+  const admin = isAdminOf(c.id);
+  const composer = S.ui.composing
+    ? `<form class="card f" data-form="post" data-cid="${c.id}">
+        <input id="np-title" name="title" required maxlength="200" placeholder="標題" aria-label="標題">
+        <textarea id="np-body" name="body" placeholder="想分享什麼？" aria-label="內容"></textarea>
+        <div class="row"><select id="np-cat" name="category_id" style="flex:1 1 160px;width:auto" aria-label="分類">${cats.filter(x => admin || !x.admin_only).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>
+        <button type="button" class="btn ghost" data-act="compose-off">取消</button><button class="btn primary">發布</button></div>
+        <div id="form-err"></div></form>`
+    : `<button class="composer-btn" data-act="compose">${avatar(S.user, m.points, 'sm')}寫點什麼…</button>`;
+  const list = shown.length ? shown.map(p => `
+    <article class="card post" data-act="open-post" data-id="${p.id}" tabindex="0">
+      <div class="row">${avatar(p.author, pts[p.author.id] ?? 0)}<div><b>${esc(p.author.name)}</b><div class="meta">${ago(p.created_at)} · ${esc(catName(p.category_id))} ${p.pinned ? '<span class="pin">置頂</span>' : ''}</div></div></div>
+      <h3>${esc(p.title)}</h3><p class="ex">${esc(p.body)}</p>
+      <div class="acts"><button class="like ${p.liked ? 'on' : ''}" data-act="like" data-type="post" data-id="${p.id}" aria-pressed="${p.liked}" aria-label="按讚，目前 ${p.like_count} 個讚">${heart}${p.like_count}</button>
+      <span class="like" aria-label="${p.comment_count} 則留言">💬 ${p.comment_count}</span></div>
+    </article>`).join('') : `<div class="card empty">這個分類還沒有貼文，當第一個發文的人吧。</div>`;
+  return `<div class="grid2"><section class="stack">${composer}
+    <div class="filters" role="group" aria-label="分類篩選"><button data-act="cat" data-id="all" aria-pressed="${f === 'all'}">全部</button>${cats.map(x => `<button data-act="cat" data-id="${x.id}" aria-pressed="${f === x.id}">${esc(x.name)}</button>`).join('')}</div>
+    ${list}</section>${sideCard(c, m, top)}</div>`;
+}
+
+/* ---------- 貼文彈窗 ---------- */
+async function renderModal() {
+  const root = document.getElementById('modal-root');
+  const id = S.ui.post;
+  if (!id) { root.innerHTML = ''; return; }
+  const r = parseRoute(); const c = S.communities.find(x => x.slug === r.slug);
+  if (!c) { S.ui.post = null; root.innerHTML = ''; return; }
+  const [posts, comments, members, cats] = await Promise.all([api.listPosts(c.id), api.listComments(id), api.listMembers(c.id), api.listCategories(c.id)]);
+  const p = posts.find(x => x.id === id);
+  if (!p) { S.ui.post = null; root.innerHTML = ''; return; }
+  const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
+  const admin = isAdminOf(c.id), mine = p.author.id === S.user.id;
+  const cmt = x => `<div class="cmt ${x.parent_id ? 'reply' : ''}">${avatar(x.author, pts[x.author.id] ?? 0, 'sm')}<div style="min-width:0"><div class="bubble"><b class="small">${esc(x.author.name)}</b><p>${esc(x.body)}</p></div>
+    <div class="row small" style="gap:2px;margin-top:2px"><button class="like ${x.liked ? 'on' : ''}" data-act="like" data-type="comment" data-id="${x.id}" aria-pressed="${x.liked}" aria-label="按讚">${heart}${x.like_count}</button>
+    ${x.parent_id ? '' : `<button class="btn ghost sm" data-act="reply" data-id="${x.id}">回覆</button>`}<span class="muted">${ago(x.created_at)}</span></div>
+    ${S.ui.replyTo === x.id ? `<form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}" data-parent="${x.id}" style="margin-top:6px"><textarea id="reply-body" name="body" required style="min-height:70px" placeholder="回覆 ${esc(x.author.name)}" aria-label="回覆內容"></textarea><div class="row"><button class="btn primary sm">送出回覆</button></div></form>` : ''}</div></div>`;
+  const tops = comments.filter(x => !x.parent_id);
+  root.innerHTML = `<div class="overlay" data-act="close-modal"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(p.title)}" data-stop>
+    <button class="btn ghost sm x" data-act="close-modal" aria-label="關閉">✕</button>
+    <div class="row">${avatar(p.author, pts[p.author.id] ?? 0)}<div><b>${esc(p.author.name)}</b><div class="meta">${ago(p.created_at)} · ${esc(cats.find(x => x.id === p.category_id)?.name || '未分類')}</div></div></div>
+    <h2>${esc(p.title)}</h2><p class="post-body">${esc(p.body)}</p>
+    <div class="row"><button class="like ${p.liked ? 'on' : ''}" data-act="like" data-type="post" data-id="${p.id}" aria-pressed="${p.liked}" aria-label="按讚">${heart}${p.like_count}</button>
+      <span class="spacer"></span>${admin ? `<button class="btn ghost sm" data-act="pin" data-id="${p.id}">${p.pinned ? '取消置頂' : '置頂'}</button>` : ''}
+      ${admin || mine ? `<button class="btn ghost sm danger" data-act="del-post" data-id="${p.id}">${S.ui.confirmDel === p.id ? '確定刪除？' : '刪除'}</button>` : ''}</div>
+    <div class="cmts">${tops.map(t => cmt(t) + comments.filter(x => x.parent_id === t.id).map(cmt).join('')).join('') || '<p class="muted small" style="margin:0">還沒有留言</p>'}
+      <form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}"><textarea id="cm-body" name="body" required style="min-height:70px" placeholder="留言…" aria-label="留言內容"></textarea><div class="row"><button class="btn primary sm">留言</button></div></form>
+    </div></div></div>`;
+}
+
+/* ---------- 課程 ---------- */
+function courseAccess(c, course, m, module) {
+  if (isAdminOf(c.id)) return { ok: true };
+  if (levelFor(m.points) < course.unlock_level) return { ok: false, why: `等級 ${course.unlock_level}「${levelNames(c)[course.unlock_level - 1]}」解鎖` };
+  if (module && module.drip_days) {
+    const openAt = new Date(m.joined_at).getTime() + module.drip_days * 86400000;
+    if (Date.now() < openAt) return { ok: false, why: `入會第 ${module.drip_days} 天開放（${fmtDate(new Date(openAt))}）` };
+  }
+  return { ok: true };
+}
+async function classroomView(c, m) {
+  const [courses, done] = await Promise.all([api.listCourses(c.id), api.listProgress()]);
+  const doneSet = new Set(done), admin = isAdminOf(c.id);
+  const open = courses.find(k => k.id === S.ui.course);
+  if (!open) {
+    const cards = courses.map(k => {
+      const acc = courseAccess(c, k, m); const all = k.modules.flatMap(x => x.lessons);
+      const pct = all.length ? Math.round(all.filter(l => doneSet.has(l.id)).length / all.length * 100) : 0;
+      return `<button class="card" style="text-align:left;display:flex;flex-direction:column;gap:8px;cursor:${acc.ok ? 'pointer' : 'default'}" ${acc.ok ? `data-act="open-course" data-id="${k.id}"` : 'aria-disabled="true"'}>
+        <div class="course-cover" style="background:${esc(themeOf(c))}">${esc(k.title.charAt(0))}${acc.ok ? '' : `<div class="lock">🔒 ${esc(acc.why)}</div>`}</div>
+        <h3 style="margin:0;font-size:17px">${esc(k.title)} ${k.published ? '' : '<span class="chip">草稿</span>'}</h3><p class="muted small" style="margin:0">${esc(k.description || '')}</p>
+        ${acc.ok ? `<div class="prog" aria-label="完成度 ${pct}%"><span style="width:${pct}%"></span></div><span class="small muted">完成 ${pct}% · ${all.length} 個單元</span>` : ''}
+      </button>`;
+    }).join('');
+    return `${courses.length ? `<div class="cgrid">${cards}</div>` : `<div class="card empty">還沒有課程${admin ? '，用下面的表單新增第一門課。' : '。'}</div>`}
+      ${admin ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增課程（管理員）</summary>
+        <form class="f" data-form="course" data-cid="${c.id}"><label>課程名稱<input id="nk-title" name="title" required></label>
+        <label>說明<input id="nk-desc" name="description"></label>
+        <label>解鎖等級<select id="nk-lv" name="unlock_level">${levelNames(c).map((n, i) => `<option value="${i + 1}">等級 ${i + 1}・${esc(n)}</option>`).join('')}</select></label>
+        <div id="form-err"></div><button class="btn primary">新增課程</button></form></details>` : ''}`;
+  }
+  const lessonsFlat = open.modules.flatMap(md => md.lessons.map(l => ({ ...l, module: md })));
+  const curId = S.ui.lesson && lessonsFlat.some(l => l.id === S.ui.lesson) ? S.ui.lesson : lessonsFlat.find(l => courseAccess(c, open, m, l.module).ok)?.id;
+  const lesson = curId ? await api.getLesson(curId) : null;
+  const curMod = lessonsFlat.find(l => l.id === curId)?.module;
+  const acc = curMod ? courseAccess(c, open, m, curMod) : { ok: true };
+  const isUrl = u => /^https?:\/\//.test(u || '');
+  const yt = lesson && (lesson.video_url.match(/(?:v=|youtu\.be\/)([\w-]{6,})/) || [])[1];
+  const video = lesson && isUrl(lesson.video_url)
+    ? (api.mode === 'supabase' && yt ? `<iframe class="vframe" src="https://www.youtube.com/embed/${esc(yt)}" allowfullscreen title="課程影片"></iframe>`
+      : `<div class="video">▶<div style="min-width:0"><b>課程影片</b><div class="small"><a href="${esc(lesson.video_url)}" target="_blank" rel="noopener">${esc(lesson.video_url)}</a></div></div></div>`) : '';
+  return `<div class="row" style="margin-bottom:14px"><button class="btn ghost sm" data-act="close-course">← 所有課程</button><h2 style="margin:0;font-size:20px">${esc(open.title)}</h2>
+      ${admin ? `<span class="spacer"></span><button class="btn sm" data-act="publish" data-id="${open.id}" data-v="${!open.published}">${open.published ? '改回草稿' : '發布課程'}</button>` : ''}</div>
+    <div class="course-layout"><aside class="card">
+      ${open.modules.map(md => { const a = courseAccess(c, open, m, md); return `<div class="mod"><h4>${esc(md.title)}${a.ok ? '' : ' 🔒'}</h4>
+        ${a.ok ? md.lessons.map(l => `<button class="lesson-link" data-act="open-lesson" data-id="${l.id}" aria-current="${l.id === curId}"><span class="dot ${doneSet.has(l.id) ? 'done' : ''}"></span>${esc(l.title)}</button>`).join('') || '<p class="small muted" style="margin:0 8px">尚無單元</p>'
+          : `<p class="small muted" style="margin:0 8px">${esc(a.why)}</p>`}</div>`; }).join('') || '<p class="muted small">還沒有章節</p>'}
+      ${admin ? `<details class="admin-box"><summary>＋ 新增章節</summary><form class="f" data-form="module" data-course="${open.id}">
+        <input id="nm-title" name="title" required placeholder="章節名稱" aria-label="章節名稱"><label>入會滿幾天才開放（0 = 立即）<input id="nm-drip" name="drip_days" type="number" min="0" value="0"></label><button class="btn primary sm">新增</button></form></details>` : ''}
+    </aside>
+    <section class="card">${lesson && acc.ok ? `<h2 style="font-size:20px;margin-top:0">${esc(lesson.title)}</h2>${video}<div class="lesson-body">${esc(lesson.body || '')}</div>
+      <div class="row" style="margin-top:18px"><button class="btn ${doneSet.has(lesson.id) ? '' : 'primary'}" data-act="complete" data-id="${lesson.id}">${doneSet.has(lesson.id) ? '✓ 已完成（點擊取消）' : '標記為完成'}</button></div>`
+      : `<div class="empty">${lessonsFlat.length ? '選一個單元開始' : '這門課還沒有單元'}</div>`}
+      ${admin && open.modules.length ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增單元</summary><form class="f" data-form="lesson" data-cid="${c.id}" data-course="${open.id}">
+        <label>章節<select id="nl-mod" name="module_id">${open.modules.map(md => `<option value="${md.id}">${esc(md.title)}</option>`).join('')}</select></label>
+        <label>單元名稱<input id="nl-title" name="title" required></label><label>影片網址（選填，YouTube 不公開連結也可以）<input id="nl-video" name="video_url" type="url" placeholder="https://"></label>
+        <label>內容<textarea id="nl-body" name="body"></textarea></label><div id="form-err"></div><button class="btn primary sm">新增單元</button></form></details>` : ''}
+    </section></div>`;
+}
+
+/* ---------- 行事曆 ---------- */
+async function calendarView(c, m) {
+  const events = await api.listEvents(c.id), admin = isAdminOf(c.id), now = Date.now();
+  const upcoming = events.filter(e => new Date(e.starts_at).getTime() + e.duration_min * 60000 >= now);
+  const past = events.filter(e => !upcoming.includes(e)).reverse();
+  const wd = ['日', '一', '二', '三', '四', '五', '六'];
+  const ev = (e, isPast) => { const d = new Date(e.starts_at), end = new Date(d.getTime() + e.duration_min * 60000);
+    const t = x => x.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `<div class="card ev ${isPast ? 'past' : ''}"><div class="date"><span>${d.getMonth() + 1} 月</span><b>${d.getDate()}</b><span>週${wd[d.getDay()]}</span></div>
+      <div style="min-width:0"><h3 style="margin:0;font-size:17px">${esc(e.title)}</h3><div class="meta">${t(d)}–${t(end)} · ${e.going_count} 人參加</div>
+      ${e.description ? `<p style="margin:6px 0 0;white-space:pre-wrap">${esc(e.description)}</p>` : ''}
+      ${e.location_url ? `<div class="small" style="margin-top:4px;overflow-wrap:anywhere">連結：<a href="${esc(e.location_url)}" target="_blank" rel="noopener">${esc(e.location_url)}</a></div>` : ''}</div>
+      <div class="ev-act row">${!isPast ? `<button class="btn ${e.going ? '' : 'primary'} sm" data-act="rsvp" data-id="${e.id}">${e.going ? '✓ 已報名' : '我要參加'}</button>` : ''}
+        ${admin ? `<button class="btn ghost sm danger" data-act="del-event" data-id="${e.id}">${S.ui.confirmEv === e.id ? '確定刪除？' : '刪除'}</button>` : ''}</div></div>`; };
+  return `<div class="stack"><h2 style="margin:0;font-size:20px">即將舉行</h2>${upcoming.map(e => ev(e, false)).join('') || '<div class="card empty">目前沒有排定的活動</div>'}
+    ${admin ? `<details class="admin-box"><summary>＋ 新增活動（管理員）</summary><form class="f" data-form="event" data-cid="${c.id}">
+      <label>活動名稱<input id="ne-title" name="title" required></label>
+      <div class="inline"><label>開始時間<input id="ne-start" name="starts_at" type="datetime-local" required></label><label>長度（分鐘）<input id="ne-dur" name="duration_min" type="number" min="15" step="15" value="60"></label></div>
+      <label>線上會議連結（選填）<input id="ne-url" name="location_url" type="url" placeholder="https://"></label>
+      <label>說明<textarea id="ne-desc" name="description"></textarea></label><div id="form-err"></div><button class="btn primary">新增活動</button></form></details>` : ''}
+    ${past.length ? `<h2 style="margin:14px 0 0;font-size:20px">過去的活動</h2>${past.map(e => ev(e, true)).join('')}` : ''}</div>`;
+}
+
+/* ---------- 成員（會員端） ---------- */
+async function membersView(c, m) {
+  const all = await api.listMembers(c.id), names = levelNames(c);
+  const active = all.filter(x => x.status === 'active').sort((a, b) => b.points - a.points);
+  const role = r => ({ owner: '<span class="chip sun">擁有者</span>', admin: '<span class="chip mint">管理員</span>', member: '' }[r]);
+  return `<div class="card"><h2 style="margin:0 0 6px;font-size:20px">成員（${active.length}）</h2>${active.map(x => `<div class="mrow">${avatar({ id: x.user_id, name: x.name }, x.points)}
+      <div class="who"><b class="name">${esc(x.name)}</b> ${role(x.role)}<div class="small muted">等級 ${levelFor(x.points)}「${esc(names[levelFor(x.points) - 1])}」 · ${x.points} 分 · ${fmtDate(x.joined_at)} 加入</div></div></div>`).join('')}</div>`;
+}
+
+/* ---------- 排行榜 ---------- */
+async function leaderboardView(c, m) {
+  const range = S.ui.range ?? 30;
+  const [rows, members, courses] = await Promise.all([api.leaderboard(c.id, range || null), api.listMembers(c.id), api.listCourses(c.id)]);
+  const names = levelNames(c), active = members.filter(x => x.status === 'active'), myLv = levelFor(m.points);
+  const counts = Array(9).fill(0); active.forEach(x => counts[levelFor(x.points) - 1]++);
+  return `<div class="grid2"><section class="card lb">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0;font-size:20px">排行榜</h2>
+      <div class="seg" role="group" aria-label="期間">${[[7, '7 天'], [30, '30 天'], [0, '全期']].map(([d, l]) => `<button data-act="range" data-d="${d}" aria-pressed="${range === d}">${l}</button>`).join('')}</div></div>
+      ${rows.length ? `<ol>${rows.map((r, i) => `<li><span class="rank ${i < 3 ? 'top' : ''}">${i + 1}</span>${avatar({ id: r.user_id, name: r.name }, r.total_points, 'sm')}<span class="name">${esc(r.name)}${r.user_id === S.user.id ? '（你）' : ''}</span><span class="pts">${range ? '+' : ''}${r.points}</span></li>`).join('')}</ol>` : '<p class="muted">還沒有分數</p>'}
+      <p class="small muted" style="margin:12px 0 0">別人幫你的貼文或留言按一個讚 = 1 分。</p>
+    </section>
+    <aside class="card"><h2 style="margin:0 0 10px;font-size:18px">等級與解鎖</h2><div class="scroll"><table class="t ladder"><thead><tr><th>等級</th><th class="n">分數</th><th class="n">人數</th></tr></thead><tbody>
+      ${names.map((n, i) => { const unlocks = courses.filter(k => k.unlock_level === i + 1).map(k => k.title);
+        return `<tr class="${myLv === i + 1 ? 'me' : ''}"><td style="white-space:normal"><b>${i + 1}・${esc(n)}</b>${unlocks.length ? `<div class="small muted">解鎖：${unlocks.map(esc).join('、')}</div>` : ''}</td><td class="n">${LEVEL_PTS[i].toLocaleString()}</td><td class="n">${counts[i]}</td></tr>`; }).join('')}
+    </tbody></table></div></aside></div>`;
+}
+
+/* ---------- 關於 / 加入 ---------- */
+function aboutView(c, m) {
+  const mm = memOf(c.id);
+  const cta = m ? (m.role === 'owner' ? '<span class="chip sun">你是這個社群的擁有者</span>' : `<button class="btn" data-act="leave" data-cid="${c.id}">${S.ui.confirmLeave ? '確定退出？' : '退出社群'}</button>`)
+    : mm?.status === 'pending' ? '<span class="chip">已送出申請，等待版主審核</span>'
+    : `<button class="btn primary lg" data-act="join" data-cid="${c.id}">${c.is_private ? '申請加入' : '免費加入社群'}</button>`;
+  return `<div class="grid2"><section class="card"><h2 style="margin:0 0 8px;font-size:20px">關於這個社群</h2><p style="white-space:pre-wrap;margin-top:0">${esc(c.description || '版主還沒有寫介紹。')}</p><div class="row" style="margin-top:18px">${cta}</div></section>
+    <aside class="card"><dl class="kv"><dt>成員</dt><dd>${c.member_count} 位</dd><dt>主題</dt><dd>${esc(c.category || '其他')}</dd><dt>類型</dt><dd>${c.is_private ? '私密（需審核）' : '公開'}</dd><dt>建立</dt><dd>${fmtDate(c.created_at)}</dd></dl></aside></div>`;
+}
+
+/* =====================================================================
+   社群後台
+   ===================================================================== */
+async function adminView(c, m) {
+  const sec = S.ui.adminSec || 'overview';
+  const members = await api.listMembers(c.id);
+  const pending = members.filter(x => x.status === 'pending').length;
+  const secs = ADMIN_SECS.filter(([k]) => k !== 'danger' || isOwner(c.id));
+  const nav = `<nav aria-label="後台選單">${secs.map(([k, l]) => `<button data-act="asec" data-id="${k}" aria-current="${k === sec}">${l}${k === 'members' && pending ? `<span class="cnt">${pending}</span>` : ''}</button>`).join('')}</nav>`;
+  let body = '';
+  if (sec === 'overview') body = await adminOverview(c, members);
+  else if (sec === 'settings') body = adminSettings(c);
+  else if (sec === 'categories') body = await adminCategories(c);
+  else if (sec === 'members') body = adminMembers(c, members);
+  else if (sec === 'invite') body = adminInvite(c);
+  else if (sec === 'danger') body = adminDanger(c);
+  return `<div class="admin">${nav}<section style="min-width:0">${body}</section></div>`;
+}
+
+async function adminOverview(c, members) {
+  const d = await api.communityDashboard(c.id);
+  const daily = (d.daily || []).map(x => { const [, mo, da] = x.day.split('-'); return { label: `${+mo}/${+da}`, value: x.count, tip: `${+mo}/${+da}：${x.count} 則貼文與留言` }; });
+  const recent = members.filter(x => x.status === 'active').sort((a, b) => b.joined_at.localeCompare(a.joined_at)).slice(0, 5);
+  return `<h2>數據總覽</h2><p class="lead">最近 7 天社群的狀況。</p>
+    <div class="tiles">
+      <div class="tile"><div class="k">成員</div><div class="v">${d.members}</div><div class="d">7 天新增 ${d.new_members_7d} 位</div></div>
+      <div class="tile ${d.pending ? 'alert' : ''}"><div class="k">待審核</div><div class="v">${d.pending}</div><div class="d">${d.pending ? `<button class="btn sm" data-act="asec" data-id="members">去審核</button>` : '沒有待處理的申請'}</div></div>
+      <div class="tile"><div class="k">7 天活躍成員</div><div class="v">${d.active_7d}</div><div class="d">有發文、留言或按讚</div></div>
+      <div class="tile"><div class="k">7 天貼文</div><div class="v">${d.posts_7d}</div><div class="d">留言 ${d.comments_7d} 則</div></div>
+      <div class="tile"><div class="k">7 天按讚</div><div class="v">${d.likes_7d}</div><div class="d">= 成員獲得的分數</div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3 style="margin:0 0 2px;font-size:16px">近 14 天互動量</h3><p class="small muted" style="margin:0 0 6px">每天的貼文＋留言數，滑過長條看數字</p>${barChart(daily, '近 14 天每日貼文與留言數', 2)}</div>
+    <div class="card" style="margin-top:14px"><h3 style="margin:0 0 6px;font-size:16px">最新加入的成員</h3>
+      ${recent.map(x => `<div class="mrow">${avatar({ id: x.user_id, name: x.name }, x.points, 'sm')}<div class="who"><b>${esc(x.name)}</b></div><span class="small muted">${ago(x.joined_at)}加入</span></div>`).join('') || '<p class="muted small">還沒有成員</p>'}</div>`;
+}
+
+function adminSettings(c) {
+  const names = levelNames(c);
+  return `<h2>社群設定</h2><p class="lead">修改後按「儲存設定」，成員重新整理就會看到。</p>
+    <form class="card f" data-form="settings" data-cid="${c.id}">
+      <label>社群名稱<input id="st-name" name="name" required maxlength="60" value="${esc(c.name)}"></label>
+      <label>一句話介紹<input id="st-tag" name="tagline" maxlength="80" value="${esc(c.tagline || '')}"></label>
+      <label>主題分類${catSelect('st-cat', c.category || '其他')}</label>
+      <label>主題色</label>${swatches('theme_color', themeOf(c))}
+      <label>完整介紹<textarea id="st-desc" name="description" style="min-height:150px">${esc(c.description || '')}</textarea></label>
+      <label class="check"><input id="st-private" type="checkbox" name="is_private" ${c.is_private ? 'checked' : ''}> 私密社群（新成員加入需要審核）</label>
+      <fieldset style="border:0;padding:0;margin:0"><legend style="font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:6px">等級名稱 <span class="hint">分數門檻固定，名稱可以換成你社群的用語</span></legend>
+        <div class="lv-grid">${names.map((n, i) => `<label>等級 ${i + 1}（${LEVEL_PTS[i].toLocaleString()} 分）<input id="st-lv${i}" name="lv${i}" required maxlength="12" value="${esc(n)}"></label>`).join('')}</div></fieldset>
+      <div id="form-err"></div>
+      <div class="row"><button class="btn primary">儲存設定</button><span class="small muted">網址代稱：${esc(c.slug)}（不能修改）</span></div>
+    </form>`;
+}
+
+async function adminCategories(c) {
+  const cats = await api.listCategories(c.id);
+  return `<h2>貼文分類</h2><p class="lead">成員發文時選擇分類。勾選「只有管理員」的分類，一般成員不能在裡面發文（適合「公告」）。</p>
+    <div class="card">${cats.map(x => `<form class="cat-row f" data-form="cat-edit" data-id="${x.id}" style="flex-direction:row">
+        <input type="text" id="cat-${x.id}" name="name" value="${esc(x.name)}" required maxlength="20" aria-label="分類名稱">
+        <label class="check"><input type="checkbox" name="admin_only" ${x.admin_only ? 'checked' : ''}> 只有管理員</label>
+        <button class="btn sm">儲存</button><button type="button" class="btn ghost sm danger" data-act="del-cat" data-id="${x.id}">${S.ui.confirmCat === x.id ? '確定刪除？' : '刪除'}</button></form>`).join('') || '<p class="muted">還沒有分類</p>'}
+      <form class="cat-row f" data-form="cat-new" data-cid="${c.id}" style="flex-direction:row;border-bottom:0;padding-top:14px">
+        <input type="text" id="cat-new" name="name" required maxlength="20" placeholder="新分類名稱" aria-label="新分類名稱">
+        <label class="check"><input type="checkbox" name="admin_only"> 只有管理員</label><button class="btn primary sm">＋ 新增分類</button></form>
+    </div>`;
+}
+
+function adminMembers(c, members) {
+  const q = (S.ui.mq || '').trim();
+  const pending = members.filter(x => x.status === 'pending');
+  const active = members.filter(x => x.status === 'active' && (!q || x.name.includes(q))).sort((a, b) => ({ owner: 0, admin: 1, member: 2 }[a.role] - { owner: 0, admin: 1, member: 2 }[b.role]) || b.points - a.points);
+  const owner = isOwner(c.id);
+  const role = r => ({ owner: '<span class="chip sun">擁有者</span>', admin: '<span class="chip mint">管理員</span>', member: '<span class="chip">成員</span>' }[r]);
+  return `<h2>成員管理</h2><p class="lead">審核申請、指派管理員、移除成員。${owner ? '' : '只有擁有者可以指派管理員。'}</p>
+    ${pending.length ? `<div class="card" style="margin-bottom:14px;border-color:var(--coral)"><h3 style="margin:0 0 4px;font-size:16px">待審核（${pending.length}）</h3>
+      ${pending.map(x => `<div class="mrow">${avatar({ id: x.user_id, name: x.name }, null, 'sm')}<div class="who"><b>${esc(x.name)}</b><div class="small muted">${ago(x.joined_at)}申請</div></div>
+        <button class="btn primary sm" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="active">核准</button><button class="btn sm" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="removed">拒絕</button></div>`).join('')}</div>` : ''}
+    <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0;font-size:16px">成員（${members.filter(x => x.status === 'active').length}）</h3>
+      <input class="search" id="mq" type="search" placeholder="搜尋成員" value="${esc(q)}" aria-label="搜尋成員"></div>
+      ${active.map(x => `<div class="mrow">${avatar({ id: x.user_id, name: x.name }, x.points, 'sm')}<div class="who"><b>${esc(x.name)}</b> ${role(x.role)}<div class="small muted">等級 ${levelFor(x.points)} · ${x.points} 分 · ${fmtDate(x.joined_at)} 加入</div></div>
+        ${owner && x.role !== 'owner' ? `<button class="btn sm" data-act="role" data-uid="${x.user_id}" data-cid="${c.id}" data-role="${x.role === 'admin' ? 'member' : 'admin'}">${x.role === 'admin' ? '取消管理員' : '設為管理員'}</button>` : ''}
+        ${x.role === 'member' || (owner && x.role === 'admin') ? `<button class="btn ghost sm danger" data-act="member" data-uid="${x.user_id}" data-cid="${c.id}" data-status="removed">${S.ui.confirmRm === x.user_id ? '確定移除？' : '移除'}</button>` : ''}</div>`).join('') || '<p class="muted small">沒有符合的成員</p>'}</div>`;
+}
+
+function adminInvite(c) {
+  const link = `${location.origin}${location.pathname}#c--${c.slug}--about`;
+  const msg = `我開了一個社群「${c.name}」${c.tagline ? `：${c.tagline}` : ''}\n\n點這裡免費加入 👉 ${link}`;
+  return `<h2>邀請成員</h2><p class="lead">把連結貼到 IG 簡介、LINE 或限時動態。對方註冊後就能${c.is_private ? '送出加入申請，你在「成員管理」核准' : '直接加入'}。</p>
+    <div class="card stack"><label class="small" for="inv-link" style="font-weight:500">社群連結</label>
+      <div class="invite-link"><input id="inv-link" readonly value="${esc(link)}"><button class="btn primary" data-act="copy" data-target="inv-link">複製連結</button></div>
+      <label class="small" style="font-weight:500;margin-top:8px">邀請訊息範本</label><pre class="msg" id="inv-msg">${esc(msg)}</pre>
+      <div><button class="btn" data-act="copy" data-target="inv-msg">複製訊息</button></div></div>`;
+}
+
+function adminDanger(c) {
+  return `<h2>刪除社群</h2><p class="lead">刪除後，所有貼文、留言、課程、活動和成員資料都會一起刪除，而且無法復原。</p>
+    <form class="card f" data-form="delete-community" data-cid="${c.id}" data-slug="${esc(c.slug)}" style="border-color:var(--coral)">
+      <label>請輸入社群的網址代稱「<b>${esc(c.slug)}</b>」確認<input id="del-confirm" name="confirm" autocomplete="off" required></label>
+      <div id="form-err"></div><div><button class="btn danger">永久刪除這個社群</button></div></form>`;
+}
+
+/* =====================================================================
+   事件
+   ===================================================================== */
+async function act(fn, msg) {
+  try { await fn(); if (msg) toast(msg); await render(); }
+  catch (e) { toast(e.message); }
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); toast('已複製'); }
+  catch (e) { const el = document.getElementById(btn.dataset.target); if (el.select) el.select(); else { const r = document.createRange(); r.selectNodeContents(el); getSelection().removeAllRanges(); getSelection().addRange(r); } toast('已選取文字，請按複製'); }
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  if (a === 'close-modal' && e.target.closest('[data-stop]') && !e.target.closest('.x')) return;
+  if (el.tagName === 'A') return;
+  e.preventDefault();
+  if (a !== 'like' && a !== 'open-post') e.stopPropagation();
+  switch (a) {
+    case 'signout': return act(() => api.signOut());
+    case 'reset': if (S.ui.confirmReset) { S.ui = {}; return act(() => api.reset(), '已重設示範資料'); } S.ui.confirmReset = true; el.textContent = '確定重設？'; setTimeout(() => { S.ui.confirmReset = false; renderTop(); }, 3000); return;
+    case 'authmode': S.ui.authMode = S.ui.authMode === 'up' ? 'in' : 'up'; return render();
+    case 'compose': S.ui.composing = true; return render().then(() => document.getElementById('np-title')?.focus());
+    case 'compose-off': S.ui.composing = false; return render();
+    case 'cat': S.ui.cat = id; return render();
+    case 'cat0': S.ui.cat0 = id; return render();
+    case 'open-post': if (e.target.closest('[data-act="like"]')) return; S.ui.post = id; S.ui.replyTo = null; S.ui.confirmDel = null; return renderModal();
+    case 'close-modal': S.ui.post = null; return render();
+    case 'like': e.stopPropagation(); return act(() => api.toggleLike(el.dataset.type, id));
+    case 'reply': S.ui.replyTo = S.ui.replyTo === id ? null : id; return renderModal().then(() => document.getElementById('reply-body')?.focus());
+    case 'pin': return act(() => api.togglePin(id));
+    case 'del-post': if (S.ui.confirmDel !== id) { S.ui.confirmDel = id; return renderModal(); } S.ui.post = null; S.ui.confirmDel = null; return act(() => api.deletePost(id), '已刪除貼文');
+    case 'open-course': S.ui.course = id; S.ui.lesson = null; return render();
+    case 'close-course': S.ui.course = null; return render();
+    case 'open-lesson': S.ui.lesson = id; return render();
+    case 'publish': return act(() => api.updateCourse(id, { published: el.dataset.v === 'true' }), el.dataset.v === 'true' ? '課程已發布' : '已改回草稿');
+    case 'complete': return act(() => api.toggleComplete(id));
+    case 'rsvp': return act(() => api.toggleRsvp(id));
+    case 'del-event': if (S.ui.confirmEv !== id) { S.ui.confirmEv = id; return render(); } S.ui.confirmEv = null; return act(() => api.deleteEvent(id), '已刪除活動');
+    case 'range': S.ui.range = Number(el.dataset.d); return render();
+    case 'preview': S.preview = !S.preview; S.ui.course = null; S.ui.adminSec = null;
+      if (S.preview && location.hash.endsWith('--admin')) location.hash = location.hash.replace(/--admin$/, '--feed');
+      return render().then(() => toast(S.preview ? '現在看到的是一般成員的畫面' : '已回到管理員畫面'));
+    case 'asec': S.ui.adminSec = id; if (!location.hash.endsWith('--admin')) { const r = parseRoute(); location.hash = `c--${r.slug}--admin`; return; } return render();
+    case 'member':
+      if (el.dataset.status === 'removed' && !el.closest('.card')?.textContent.includes('待審核') && S.ui.confirmRm !== el.dataset.uid) { S.ui.confirmRm = el.dataset.uid; return render(); }
+      S.ui.confirmRm = null;
+      return act(() => api.setMemberStatus(el.dataset.cid, el.dataset.uid, el.dataset.status), el.dataset.status === 'active' ? '已核准加入' : '已移除');
+    case 'role': return act(() => api.setMemberRole(el.dataset.cid, el.dataset.uid, el.dataset.role), el.dataset.role === 'admin' ? '已設為管理員' : '已取消管理員');
+    case 'del-cat': if (S.ui.confirmCat !== id) { S.ui.confirmCat = id; return render(); } S.ui.confirmCat = null; return act(() => api.deleteCategory(id), '已刪除分類');
+    case 'copy': { const t = document.getElementById(el.dataset.target); return copyText(t.value ?? t.textContent, el); }
+    case 'join': return act(async () => { const st = await api.join(el.dataset.cid); if (st === 'active') { const c = S.communities.find(x => x.id === el.dataset.cid); location.hash = `c--${c.slug}--feed`; } else toast('已送出申請，等待版主審核'); });
+    case 'leave': if (!S.ui.confirmLeave) { S.ui.confirmLeave = true; return render(); } S.ui.confirmLeave = false; return act(() => api.leave(el.dataset.cid), '已退出社群');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.ui.post) { S.ui.post = null; render(); }
+  if (e.key === 'Enter' && e.target.matches('article.post')) { S.ui.post = e.target.dataset.id; renderModal(); }
+});
+let mqTimer;
+document.addEventListener('input', e => {
+  if (e.target.id === 'search') {
+    S.ui.q = e.target.value; const pos = e.target.selectionStart;
+    document.getElementById('app').innerHTML = homeView();
+    const s = document.getElementById('search'); s.focus(); s.setSelectionRange(pos, pos);
+  }
+  if (e.target.id === 'mq') {
+    S.ui.mq = e.target.value; clearTimeout(mqTimer);
+    mqTimer = setTimeout(async () => { const pos = e.target.selectionStart; await render(); const s = document.getElementById('mq'); if (s) { s.focus(); s.setSelectionRange(pos, pos); } }, 250);
+  }
+});
+document.addEventListener('submit', async e => {
+  const f = e.target.closest('form[data-form]'); if (!f) return;
+  e.preventDefault();
+  const fd = new FormData(f), d = Object.fromEntries(fd), kind = f.dataset.form;
+  const errBox = f.querySelector('#form-err');
+  const btn = f.querySelector('button:not([type="button"])'); if (btn) btn.disabled = true;
+  try {
+    if (kind === 'auth') { if (S.ui.authMode === 'up') await api.signUp(d.email, d.password, d.name); else await api.signIn(d.email, d.password); S.ui = {}; }
+    if (kind === 'community') {
+      const c = await api.createCommunity({ name: d.name.trim(), slug: d.slug.trim().toLowerCase(), tagline: d.tagline.trim(), description: d.description.trim(),
+        is_private: !!d.is_private, category: d.category, theme_color: d.theme_color || '#FFC933' });
+      S.ui = {}; location.hash = `c--${c.slug}--feed`; toast('社群建立好了！先發一篇歡迎文吧'); return;
+    }
+    if (kind === 'settings') {
+      await api.updateCommunity(f.dataset.cid, { name: d.name.trim(), tagline: d.tagline.trim(), description: d.description.trim(), category: d.category,
+        theme_color: d.theme_color, is_private: !!d.is_private, level_names: Array.from({ length: 9 }, (_, i) => d['lv' + i].trim()) });
+      toast('設定已儲存');
+    }
+    if (kind === 'cat-edit') { await api.updateCategory(f.dataset.id, { name: d.name.trim(), admin_only: !!d.admin_only }); toast('分類已儲存'); }
+    if (kind === 'cat-new') { await api.createCategory(f.dataset.cid, d.name.trim(), !!d.admin_only); toast('已新增分類'); }
+    if (kind === 'delete-community') {
+      if (d.confirm.trim() !== f.dataset.slug) throw new Error('輸入的網址代稱不一致，社群沒有被刪除');
+      await api.deleteCommunity(f.dataset.cid); S.ui = {}; location.hash = ''; toast('社群已刪除'); return;
+    }
+    if (kind === 'post') { await api.createPost({ community_id: f.dataset.cid, title: d.title.trim(), body: d.body.trim(), category_id: d.category_id }); S.ui.composing = false; toast('已發布'); }
+    if (kind === 'comment') { await api.createComment({ post_id: f.dataset.post, community_id: f.dataset.cid, parent_id: f.dataset.parent || null, body: d.body.trim() }); S.ui.replyTo = null; }
+    if (kind === 'course') { const k = await api.createCourse({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), unlock_level: Number(d.unlock_level) }); S.ui.course = k.id; toast('已新增課程'); }
+    if (kind === 'module') { await api.createModule({ course_id: f.dataset.course, title: d.title.trim(), drip_days: Number(d.drip_days) || 0 }); toast('已新增章節'); }
+    if (kind === 'lesson') { const l = await api.createLesson({ community_id: f.dataset.cid, course_id: f.dataset.course, module_id: d.module_id, title: d.title.trim(), video_url: d.video_url.trim(), body: d.body }); S.ui.lesson = l?.id || null; toast('已新增單元'); }
+    if (kind === 'event') { await api.createEvent({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), starts_at: new Date(d.starts_at).toISOString(), duration_min: Number(d.duration_min) || 60, location_url: d.location_url.trim() }); toast('已新增活動'); }
+    await render();
+  } catch (err) {
+    if (errBox) errBox.innerHTML = `<p class="err">${esc(err.message)}</p>`; else toast(err.message);
+    if (btn) btn.disabled = false;
+  }
+});
+window.addEventListener('hashchange', () => { const keep = { authMode: S.ui.authMode, adminSec: location.hash.endsWith('--admin') ? S.ui.adminSec : null }; S.ui = keep; render(); });
+render();
+</script>
+
+</body>
+</html>
