@@ -65,7 +65,7 @@ function renderTop() {
     <a class="btn sm" href="app.html">回到社群</a>
     ${S.user ? `<span class="user-chip">${avatar(S.user, null, 'sm')}<span class="name">${esc(S.user.name)}</span></span>` : ''}`;
   document.getElementById('footer').innerHTML = `<span>${esc(JC.CONFIG.APP_NAME)} 總控台</span><span>前端 ${JC.versionTag()}</span>
-    ${S.data ? `<span>資料庫 v${esc(S.data.ov.db_version || '?')}</span>` : ''}<span class="spacer"></span><a href="./">品牌首頁</a><a href="changelog.html">版本紀錄</a>`;
+    ${S.data ? `<span>資料庫 v${esc(S.data.ov.db_version || '?')}</span>` : ''}<span class="spacer"></span><a href="./">品牌首頁</a><a href="terms.html">服務條款</a><a href="privacy.html">隱私權政策</a><a href="changelog.html">版本紀錄</a>`;
 }
 
 async function load() {

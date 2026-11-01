@@ -12,6 +12,17 @@
     ['u05', '李珮瑜', 38], ['u06', '黃志明', 33], ['u07', '吳宜庭', 26], ['u08', '蔡明軒', 19],
     ['u09', '許雅婷', 11], ['u10', '鄭宇翔', 4]
   ].map(([id, name, days]) => ({ id, name, email: `demo-${id}@juchang.demo`, hoursAgo: days * D }));
+  const BIOS = {
+    u01: '上班族，記帳第 2 年。目標是 35 歲前存到第一個 100 萬。',
+    u02: 'HYROX 選手、健身教練。正在努力把學貸和車貸還完。',
+    u03: '網站接案者，用 AI 工具做形象網站。',
+    u04: '業務，收入起伏大，正在學怎麼抓預備金。',
+    u05: '接案美髮設計師，也在經營自己的 IG 作品集。',
+    u06: '工程師，喜歡手沖咖啡跟讀理財書。',
+    u07: '剛開始學理財的社會新鮮人。',
+    u10: '新竹工程師，想開始認真管理自己的錢。'
+  };
+  users.forEach(u => { u.bio = BIOS[u.id] || ''; });
 
   const LV = ['新手', '學徒', '行動者', '實踐者', '推手', '導師', '領航者', '大師', '傳奇'];
 
@@ -49,8 +60,11 @@
         { k: 'p7', by: 'u06', cat: '讀書會', d: 7, likes: 4, title: '《富爸爸，窮爸爸》第三章筆記',
           body: '這章最大的收穫：資產是會把錢放進你口袋的東西，負債是把錢從口袋拿走的東西。\n\n我回頭檢查，原本以為是資產的車，其實每個月都在讓我付錢。', c: [] },
         { k: 'p8', by: 'u10', cat: '一般討論', d: 0.15, likes: 1, title: '新人報到！',
-          body: '大家好，我是宇翔，在新竹當工程師。想開始認真管理自己的錢，請多指教。', c: [] }
+          body: '大家好，我是宇翔，在新竹當工程師。想開始認真管理自己的錢，請多指教。', c: [] },
+        { k: 'p9', by: 'u07', cat: '一般討論', d: 0.06, likes: 0, title: '免費送飆股名單，加 LINE 領取',
+          body: '老師帶單每月穩賺 30%，名額有限，私訊我 LINE 就送明牌！', c: [] }
       ],
+      reports: [['u03', 'p9', 'scam', '叫大家加 LINE 拿明牌，很像投資詐騙', 1], ['u01', 'p9', 'spam', '', 0.5]],
       courses: [
         { title: '新手入門：現金流三張表', description: '記帳、現金流量表、資產負債表，一次建立。', unlock: 1, modules: [
           { title: '第一章　看見你的錢', drip: 0, lessons: [
@@ -182,7 +196,7 @@
     const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
     const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const out = { users, communities: [], memberships: [], categories: [], posts: [], comments: [], likes: [], point_events: [],
-      courses: [], modules: [], lessons: [], progress: [], events: [], rsvps: [], platform_admins: ['ME'] };
+      courses: [], modules: [], lessons: [], progress: [], events: [], rsvps: [], reports: [], platform_admins: ['ME'] };
     const r1 = n => Math.round(n * 100) / 100;
 
     for (const c of communities) {
@@ -229,6 +243,9 @@
           });
         });
       }
+
+      (c.reports || []).forEach(([by, k, reason, note, hours]) => out.reports.push({ community_id: cid, reporter_id: by, target_type: 'post',
+        target_id: `${cid}-${k}`, reason, note, hoursAgo: hours }));
 
       c.courses.forEach((k, ki) => {
         const kid = `${cid}-k${ki}`;

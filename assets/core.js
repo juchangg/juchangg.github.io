@@ -31,12 +31,34 @@
   }
   const fmtDate = iso => new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
   const AV = ['#FFC933', '#FF7A59', '#FF6FA3', '#9B7BFF', '#4DA3FF', '#2BC48A', '#FFB020', '#7AD3FF'];
+  const safeImg = u => typeof u === 'string' && (/^https:\/\//.test(u) || /^data:image\/(jpeg|png|webp);base64,/.test(u)) ? u : '';
   function avatar(user, points, size) {
     const name = user?.name || '?';
     let h = 0; for (const ch of String(user?.id || name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const lv = points == null ? '' : `<span class="lv" title="等級 ${levelFor(points)}">${levelFor(points)}</span>`;
-    return `<span class="av${size ? ' ' + size : ''}" style="background:${AV[h % AV.length]}" aria-hidden="true">${esc(name.trim().charAt(0) || '?')}${lv}</span>`;
+    const img = safeImg(user?.avatar);
+    return img
+      ? `<span class="av${size ? ' ' + size : ''}" aria-hidden="true"><img src="${esc(img)}" alt="" loading="lazy">${lv}</span>`
+      : `<span class="av${size ? ' ' + size : ''}" style="background:${AV[h % AV.length]}" aria-hidden="true">${esc(name.trim().charAt(0) || '?')}${lv}</span>`;
   }
+  // 把使用者選的圖片裁成 256×256 的正方形 JPEG
+  function squareImage(file, size = 256) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/.test(file.type)) return reject(new Error('請選擇 JPG、PNG 或 WebP 圖片'));
+      if (file.size > 15 * 1024 * 1024) return reject(new Error('圖片太大了，請選 15MB 以內的圖片'));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const s = Math.min(img.width, img.height), c = document.createElement('canvas');
+        c.width = c.height = size;
+        c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => b ? resolve({ blob: b, dataUrl: c.toDataURL('image/jpeg', 0.85) }) : reject(new Error('圖片處理失敗')), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('這張圖片打不開，請換一張')); };
+      img.src = url;
+    });
+  }
+  const REPORT_REASONS = [['spam', '垃圾訊息或廣告'], ['scam', '詐騙或不實資訊'], ['harassment', '騷擾或霸凌'], ['inappropriate', '不當內容'], ['other', '其他']];
   function toast(msg) {
     let t = document.getElementById('toast');
     if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
@@ -66,7 +88,7 @@
      A. 示範模式（瀏覽器 localStorage）
      ===================================================================== */
   function makeDemoApi() {
-    const KEY = 'juchang-demo-v2';
+    const KEY = 'juchang-demo-v3';
     let db = load();
     function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {} return seed(); }
     function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
@@ -76,8 +98,10 @@
       const at = (d, hh, mm) => { const v = new Date(); v.setDate(v.getDate() + d); v.setHours(hh, mm, 0, 0); return v.toISOString(); };
       return {
         session: 'u-me',
-        users: [{ id: 'u-me', name: '示範帳號', email: 'demo@juchang.app', created_at: t(24 * 60) },
-          ...x.users.map(u => ({ id: u.id, name: u.name, email: u.email, created_at: t(u.hoursAgo) }))],
+        users: [{ id: 'u-me', name: '示範帳號', email: 'demo@juchang.app', created_at: t(24 * 60), bio: '聚場的示範帳號，也是「財商覺醒俱樂部」的擁有者。', avatar: '', terms_version: CONFIG.TERMS_VERSION },
+          ...x.users.map(u => ({ id: u.id, name: u.name, email: u.email, created_at: t(u.hoursAgo), bio: u.bio || '', avatar: '', terms_version: CONFIG.TERMS_VERSION }))],
+        reports: (x.reports || []).map(r => ({ id: 'r-' + r.target_id + '-' + r.reporter_id, community_id: r.community_id, reporter_id: me(r.reporter_id), target_type: r.target_type,
+          target_id: r.target_id, reason: r.reason, note: r.note || '', status: 'open', created_at: t(r.hoursAgo), resolved_at: null })),
         platform_admins: ['u-me'],
         communities: x.communities.map(c => ({ ...c, owner_id: me(c.owner_id), created_at: t(c.hoursAgo) })),
         memberships: x.memberships.map(m => ({ community_id: m.community_id, user_id: me(m.user_id), role: m.role, status: m.status, points: m.points, joined_at: t(m.joined_hoursAgo) })),
@@ -96,7 +120,7 @@
     }
     const S = () => db.session;
     const user = id => db.users.find(u => u.id === id) || { id, name: '已離開的成員' };
-    const author = id => { const u = user(id); return { id: u.id, name: u.name }; };
+    const author = id => { const u = user(id); return { id: u.id, name: u.name, avatar: u.avatar || '' }; };
     const mem = (cid, u = S()) => db.memberships.find(m => m.community_id === cid && m.user_id === u);
     const isMember = cid => mem(cid)?.status === 'active';
     const isAdmin = cid => isMember(cid) && mem(cid).role !== 'member';
@@ -113,7 +137,7 @@
 
     return {
       mode: 'demo',
-      async getUser() { const u = db.users.find(x => x.id === S()); return u ? { id: u.id, name: u.name, email: u.email } : null; },
+      async getUser() { const u = db.users.find(x => x.id === S()); return u ? { id: u.id, name: u.name, email: u.email, avatar: u.avatar || '', bio: u.bio || '', terms_version: u.terms_version || null, created_at: u.created_at } : null; },
       async signIn(email) {
         const u = db.users.find(x => x.email === email.trim().toLowerCase());
         if (!u) throw new Error('示範模式找不到這個 Email。請用 demo@juchang.app 登入，或改用「註冊」');
@@ -122,8 +146,24 @@
       async signUp(email, pw, name) {
         email = email.trim().toLowerCase();
         if (db.users.some(x => x.email === email)) throw new Error('這個 Email 已經註冊過，請直接登入');
-        const u = { id: newId(), name: name || email.split('@')[0], email, created_at: nowIso() }; db.users.push(u); db.session = u.id; save();
+        const u = { id: newId(), name: (name || email.split('@')[0]).slice(0, 30), email, created_at: nowIso(), bio: '', avatar: '', terms_version: CONFIG.TERMS_VERSION };
+        db.users.push(u); db.session = u.id; save();
       },
+      async requestPasswordReset(email) {
+        if (!db.users.some(x => x.email === email.trim().toLowerCase())) return; // 不透露 Email 是否存在
+      },
+      async updatePassword() { need(S(), '請先登入'); },
+      onAuthEvent() {},
+      async acceptTerms(ver) { const u = db.users.find(x => x.id === S()); need(u, '請先登入'); u.terms_version = ver; save(); },
+      async updateProfile(p) {
+        const u = db.users.find(x => x.id === S()); need(u, '請先登入');
+        if (p.display_name != null) { const n = p.display_name.trim(); if (!n || n.length > 30) throw new Error('名稱要 1～30 個字'); u.name = n; }
+        if (p.bio != null) { if (p.bio.length > 300) throw new Error('自我介紹最多 300 字'); u.bio = p.bio; }
+        save();
+      },
+      async uploadAvatar(img) { const u = db.users.find(x => x.id === S()); need(u, '請先登入'); u.avatar = img.dataUrl; save(); return u.avatar; },
+      async removeAvatar() { const u = db.users.find(x => x.id === S()); need(u, '請先登入'); u.avatar = ''; save(); },
+      async getProfile(uid) { const u = db.users.find(x => x.id === uid); return u ? { id: u.id, name: u.name, avatar: u.avatar || '', bio: u.bio || '', created_at: u.created_at } : null; },
       async signOut() { db.session = null; save(); },
       async reset() { db = seed(); save(); },
       async dbVersion() { return CONFIG.DB_VERSION_REQUIRED; },
@@ -161,12 +201,13 @@
       },
       async join(cid) {
         need(S(), '請先登入');
+        if (mem(cid)?.status === 'banned') throw new Error('你已被這個社群的管理員封鎖，無法加入');
         if (mem(cid)) return mem(cid).status;
         const status = comm(cid).is_private ? 'pending' : 'active';
         db.memberships.push({ community_id: cid, user_id: S(), role: 'member', status, points: 0, joined_at: nowIso() });
         save(); return status;
       },
-      async leave(cid) { need(mem(cid)?.role !== 'owner', '擁有者不能退出自己的社群'); db.memberships = db.memberships.filter(m => !(m.community_id === cid && m.user_id === S())); save(); },
+      async leave(cid) { need(mem(cid)?.role !== 'owner', '擁有者不能退出自己的社群'); need(mem(cid)?.status !== 'banned'); db.memberships = db.memberships.filter(m => !(m.community_id === cid && m.user_id === S())); save(); },
 
       /* 分類 */
       async listCategories(cid) { return db.categories.filter(c => c.community_id === cid).sort((a, b) => a.sort - b.sort); },
@@ -197,6 +238,48 @@
         db.posts.push({ id: newId(), ...d, author_id: S(), pinned: false, created_at: nowIso() }); save();
       },
       async togglePin(id) { const p = db.posts.find(x => x.id === id); need(isAdmin(p.community_id)); p.pinned = !p.pinned; save(); },
+      async updatePost(id, patch) {
+        const p = db.posts.find(x => x.id === id); need(p, '找不到這篇貼文'); need(p.author_id === S(), '只能編輯自己的貼文');
+        if (patch.category_id && patch.category_id !== p.category_id) {
+          const cat = db.categories.find(c => c.id === patch.category_id);
+          need(cat && cat.community_id === p.community_id && (!cat.admin_only || isAdmin(p.community_id)), '不能把貼文移到這個分類');
+        }
+        Object.assign(p, { title: patch.title, body: patch.body, category_id: patch.category_id || p.category_id, edited_at: nowIso() }); save();
+      },
+      async updateComment(id, body) {
+        const c = db.comments.find(x => x.id === id); need(c && c.author_id === S(), '只能編輯自己的留言');
+        c.body = body; c.edited_at = nowIso(); save();
+      },
+      async deleteComment(id) {
+        const c = db.comments.find(x => x.id === id); need(c && (c.author_id === S() || isAdmin(c.community_id)));
+        const ids = [id, ...db.comments.filter(x => x.parent_id === id).map(x => x.id)];
+        db.comments = db.comments.filter(x => !ids.includes(x.id));
+        db.likes = db.likes.filter(l => !(l.target_type === 'comment' && ids.includes(l.target_id)));
+        save();
+      },
+      async report(type, id, reason, note) {
+        const t = (type === 'post' ? db.posts : db.comments).find(x => x.id === id); need(t, '找不到這則內容，可能已經被刪除');
+        need(isMember(t.community_id), '只有成員可以檢舉'); need(t.author_id !== S(), '不能檢舉自己的內容');
+        db.reports = db.reports.filter(r => !(r.reporter_id === S() && r.target_type === type && r.target_id === id));
+        db.reports.push({ id: newId(), community_id: t.community_id, reporter_id: S(), target_type: type, target_id: id, reason, note: (note || '').trim(), status: 'open', created_at: nowIso(), resolved_at: null });
+        save();
+      },
+      async listReports(cid) {
+        need(isAdmin(cid), '只有管理員可以查看檢舉');
+        return db.reports.filter(r => r.community_id === cid).map(r => {
+          const t = (r.target_type === 'post' ? db.posts : db.comments).find(x => x.id === r.target_id);
+          return { ...r, post_id: t ? (r.target_type === 'post' ? t.id : t.post_id) : null, reporter_name: user(r.reporter_id).name,
+            author_id: t?.author_id, author_name: t ? user(t.author_id).name : '',
+            excerpt: t ? (r.target_type === 'post' ? `${t.title}：${t.body}` : t.body).slice(0, 160) : '（內容已刪除）', target_exists: !!t };
+        }).sort((a, b) => ((b.status === 'open') - (a.status === 'open')) || b.created_at.localeCompare(a.created_at));
+      },
+      async resolveReport(rid, act) {
+        const r = db.reports.find(x => x.id === rid); need(r, '找不到這筆檢舉'); need(isAdmin(r.community_id), '只有管理員可以處理檢舉');
+        if (act === 'remove') { if (r.target_type === 'post') await this.deletePost(r.target_id); else await this.deleteComment(r.target_id); }
+        db.reports.filter(x => x.target_type === r.target_type && x.target_id === r.target_id && x.status === 'open')
+          .forEach(x => { x.status = act === 'remove' ? 'removed' : 'kept'; x.resolved_at = nowIso(); });
+        save();
+      },
       async deletePost(id) {
         const p = db.posts.find(x => x.id === id); need(p.author_id === S() || isAdmin(p.community_id));
         const cids = db.comments.filter(c => c.post_id === id).map(c => c.id);
@@ -227,7 +310,7 @@
         if (!isMember(cid)) return [];
         const from = days ? since(days) : 0;
         return db.memberships.filter(m => m.community_id === cid && m.status === 'active').map(m => ({
-          user_id: m.user_id, name: user(m.user_id).name, total_points: m.points,
+          user_id: m.user_id, name: user(m.user_id).name, avatar: user(m.user_id).avatar || '', total_points: m.points,
           points: days ? db.point_events.filter(e => e.community_id === cid && e.user_id === m.user_id && new Date(e.created_at) >= from).reduce((s, e) => s + e.delta, 0) : m.points
         })).sort((a, b) => b.points - a.points).slice(0, 50);
       },
@@ -235,7 +318,7 @@
       /* 成員 */
       async listMembers(cid) {
         if (!isMember(cid)) return [];
-        return db.memberships.filter(m => m.community_id === cid && (m.status === 'active' || isAdmin(cid))).map(m => ({ ...m, name: user(m.user_id).name }));
+        return db.memberships.filter(m => m.community_id === cid && (m.status === 'active' || isAdmin(cid))).map(m => ({ ...m, name: user(m.user_id).name, avatar: user(m.user_id).avatar || '' }));
       },
       async setMemberStatus(cid, uid, status) {
         need(isAdmin(cid), '只有管理員可以管理成員');
@@ -262,7 +345,9 @@
           daily.push({ day: k, count: [...posts, ...comments].filter(r => dayKey(r.created_at) === k).length });
         }
         const ms = db.memberships.filter(inC);
+        const openReports = new Set(db.reports.filter(r => r.community_id === cid && r.status === 'open').map(r => r.target_type + r.target_id));
         return { members: ms.filter(m => m.status === 'active').length, pending: ms.filter(m => m.status === 'pending').length,
+          banned: ms.filter(m => m.status === 'banned').length, reports_open: openReports.size,
           new_members_7d: ms.filter(m => m.status === 'active' && new Date(m.joined_at) >= s7).length,
           posts_7d: posts.filter(recent).length, comments_7d: comments.filter(recent).length, likes_7d: likes.filter(recent).length,
           active_7d: active.size, daily };
@@ -361,7 +446,8 @@
       return m;
     };
     const ok = ({ data, error }) => { if (error) throw new Error(translate(error.message)); return data; };
-    const prof = p => p ? { id: p.id, name: p.display_name } : { id: null, name: '已離開的成員' };
+    const prof = p => p ? { id: p.id, name: p.display_name, avatar: p.avatar_url || '' } : { id: null, name: '已離開的成員' };
+    const PF = 'id,display_name,avatar_url';
     async function likeInfo(type, ids) {
       const m = {}; if (!ids.length) return m;
       ok(await sb.from('likes').select('target_id,user_id').eq('target_type', type).in('target_id', ids))
@@ -381,13 +467,42 @@
         const { data: { session } } = await sb.auth.getSession();
         if (!session) { me = null; return null; }
         const p = ok(await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle());
-        me = { id: session.user.id, name: p?.display_name || session.user.email, email: session.user.email };
+        me = { id: session.user.id, name: p?.display_name || session.user.email, email: session.user.email,
+          avatar: p?.avatar_url || '', bio: p?.bio || '', terms_version: p?.terms_version || null, created_at: p?.created_at };
         return me;
       },
       async signIn(email, password) { ok(await sb.auth.signInWithPassword({ email, password })); },
       async signUp(email, password, name) {
-        const d = ok(await sb.auth.signUp({ email, password, options: { data: { display_name: name } } }));
+        const d = ok(await sb.auth.signUp({ email, password, options: { data: { display_name: name, terms_version: CONFIG.TERMS_VERSION } } }));
         if (!d.session) throw new Error('註冊成功！請到信箱點驗證信，再回來登入');
+      },
+      async requestPasswordReset(email) {
+        ok(await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + location.pathname }));
+      },
+      async updatePassword(password) { ok(await sb.auth.updateUser({ password })); },
+      onAuthEvent(fn) { sb.auth.onAuthStateChange((event) => fn(event)); },
+      async acceptTerms(ver) { ok(await sb.rpc('accept_terms', { ver })); },
+      async updateProfile(p) {
+        const patch = {};
+        if (p.display_name != null) { const n = p.display_name.trim(); if (!n || n.length > 30) throw new Error('名稱要 1～30 個字'); patch.display_name = n; }
+        if (p.bio != null) { if (p.bio.length > 300) throw new Error('自我介紹最多 300 字'); patch.bio = p.bio; }
+        ok(await sb.from('profiles').update(patch).eq('id', me.id));
+      },
+      async uploadAvatar(img) {
+        const path = `${me.id}/avatar.jpg`;
+        const { error } = await sb.storage.from('avatars').upload(path, img.blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+        if (error) throw new Error(/row-level security|Unauthorized/.test(error.message) ? '頭像上傳失敗：沒有權限，請確認已執行 v0.3.0 資料庫升級' : '頭像上傳失敗：' + error.message);
+        const url = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl + '?v=' + Date.now();
+        ok(await sb.from('profiles').update({ avatar_url: url }).eq('id', me.id));
+        return url;
+      },
+      async removeAvatar() {
+        await sb.storage.from('avatars').remove([`${me.id}/avatar.jpg`]);
+        ok(await sb.from('profiles').update({ avatar_url: null }).eq('id', me.id));
+      },
+      async getProfile(uid) {
+        const p = ok(await sb.from('profiles').select('id,display_name,avatar_url,bio,created_at').eq('id', uid).maybeSingle());
+        return p ? { id: p.id, name: p.display_name, avatar: p.avatar_url || '', bio: p.bio || '', created_at: p.created_at } : null;
       },
       async signOut() { await sb.auth.signOut(); me = null; },
       async dbVersion() {
@@ -416,7 +531,7 @@
       async deleteCategory(id) { ok(await sb.from('categories').delete().eq('id', id)); },
 
       async listPosts(cid) {
-        const ps = ok(await sb.from('posts').select('*, author:profiles(id,display_name)').eq('community_id', cid)
+        const ps = ok(await sb.from('posts').select(`*, author:profiles(${PF})`).eq('community_id', cid)
           .order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100));
         const ids = ps.map(p => p.id), li = await likeInfo('post', ids), cc = {};
         if (ids.length) ok(await sb.from('comments').select('post_id').in('post_id', ids)).forEach(c => cc[c.post_id] = (cc[c.post_id] || 0) + 1);
@@ -425,20 +540,32 @@
       async createPost(d) { ok(await sb.from('posts').insert({ ...d, author_id: me.id })); },
       async togglePin(id) { const p = ok(await sb.from('posts').select('pinned').eq('id', id).single()); ok(await sb.from('posts').update({ pinned: !p.pinned }).eq('id', id)); },
       async deletePost(id) { ok(await sb.from('posts').delete().eq('id', id)); },
+      async updatePost(id, patch) {
+        const d = ok(await sb.from('posts').update({ title: patch.title, body: patch.body, category_id: patch.category_id }).eq('id', id).select('id'));
+        if (!d.length) throw new Error('只能編輯自己的貼文');
+      },
+      async updateComment(id, body) {
+        const d = ok(await sb.from('comments').update({ body }).eq('id', id).select('id'));
+        if (!d.length) throw new Error('只能編輯自己的留言');
+      },
+      async deleteComment(id) { ok(await sb.from('comments').delete().eq('id', id)); },
+      async report(type, id, reason, note) { ok(await sb.rpc('report_content', { t_type: type, t_id: id, p_reason: reason, p_note: note || null })); },
+      async listReports(cid) { return ok(await sb.rpc('community_reports', { cid })); },
+      async resolveReport(rid, act) { ok(await sb.rpc('resolve_report', { rid, act })); },
       async listComments(pid) {
-        const cs = ok(await sb.from('comments').select('*, author:profiles(id,display_name)').eq('post_id', pid).order('created_at'));
+        const cs = ok(await sb.from('comments').select(`*, author:profiles(${PF})`).eq('post_id', pid).order('created_at'));
         const li = await likeInfo('comment', cs.map(c => c.id));
         return cs.map(c => ({ ...c, author: prof(c.author), like_count: li[c.id]?.n || 0, liked: !!li[c.id]?.mine }));
       },
       async createComment(d) { ok(await sb.from('comments').insert({ ...d, author_id: me.id })); },
       async toggleLike(type, id) { await toggleRow('likes', { user_id: me.id, target_type: type, target_id: id }); },
       async leaderboard(cid, days) {
-        return ok(await sb.rpc('leaderboard', { cid, days: days || null })).map(r => ({ user_id: r.user_id, name: r.display_name, points: Number(r.points), total_points: r.total_points }));
+        return ok(await sb.rpc('leaderboard', { cid, days: days || null })).map(r => ({ user_id: r.user_id, name: r.display_name, avatar: r.avatar_url || '', points: Number(r.points), total_points: r.total_points }));
       },
 
       async listMembers(cid) {
-        return ok(await sb.from('memberships').select('*, profile:profiles(id,display_name)').eq('community_id', cid).order('points', { ascending: false }))
-          .map(m => ({ ...m, name: m.profile?.display_name || '成員' }));
+        return ok(await sb.from('memberships').select(`*, profile:profiles(${PF})`).eq('community_id', cid).order('points', { ascending: false }))
+          .map(m => ({ ...m, name: m.profile?.display_name || '成員', avatar: m.profile?.avatar_url || '' }));
       },
       async setMemberStatus(cid, uid, status) { ok(await sb.rpc('set_member_status', { cid, uid, p_status: status })); },
       async setMemberRole(cid, uid, role) { ok(await sb.rpc('set_member_role', { cid, uid, p_role: role })); },
@@ -475,7 +602,7 @@
   window.JC = {
     CONFIG, LIVE, api: LIVE ? makeSupabaseApi() : makeDemoApi(),
     LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES,
-    levelFor, levelProgress, esc, ago, fmtDate, avatar, toast, versionTag, logo, barChart,
+    levelFor, levelProgress, esc, ago, fmtDate, avatar, toast, versionTag, logo, barChart, squareImage, REPORT_REASONS,
     verLt: (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; }
   };
 })();
