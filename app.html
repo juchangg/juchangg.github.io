@@ -128,6 +128,75 @@ main { padding-block: 24px 40px; min-height: 60vh }
 .cat-row input[type=text] { flex: 1 1 180px }
 .invite-link { display: flex; gap: 8px; flex-wrap: wrap }
 .invite-link input { flex: 1 1 260px; font-family: var(--f-num); font-size: 14px }
+/* v0.4：頂部圖示、通知、私訊、圖片、@提及 */
+.icon-btn { position: relative; display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 0; background: none; color: var(--ink-2); cursor: pointer; text-decoration: none }
+.icon-btn:hover { background: var(--surface-2); color: var(--ink) }
+.icon-btn svg { width: 21px; height: 21px }
+.icon-btn[aria-expanded="true"] { background: var(--sun-soft); color: var(--ink) }
+.badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--coral); color: var(--on-ink); font: 700 11px/18px var(--f-num); text-align: center; border: 2px solid var(--surface) }
+.notif { position: fixed; z-index: 15; top: calc(env(safe-area-inset-top, 0px) + 66px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(400px, calc(100vw - 32px)); max-height: min(70vh, 620px); display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 12px 40px rgba(23,23,28,.16) }
+.notif-list { overflow-y: auto; padding: 0 6px 8px }
+.nt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; border: 0; background: none; padding: 10px 8px; border-radius: var(--r-sm); cursor: pointer; font: inherit; color: inherit; position: relative }
+.nt:hover { background: var(--surface-2) }
+.nt.unread { background: var(--sun-soft) }
+.nt.unread::after { content: ""; position: absolute; right: 10px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--coral) }
+.nt-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-right: 14px; font-size: 14px; line-height: 1.5 }
+.nt-snip { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.nt-icon { background: var(--surface-2); font-size: 15px }
+.mwrap { position: relative }
+.mention-pop { position: absolute; left: 8px; top: calc(100% + 4px); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--shadow); min-width: 200px; max-width: calc(100% - 16px); padding: 4px }
+.mention-pop button { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; background: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; font: inherit; text-align: left }
+.mention-pop button[aria-selected="true"], .mention-pop button:hover { background: var(--sun-soft) }
+.mention { color: var(--grape-ink); background: var(--grape-soft); border-radius: 4px; padding: 0 3px; font-weight: 500 }
+.img-strip { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.img-strip:empty { display: none }
+.dimg { position: relative; width: 76px; height: 76px }
+.dimg img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-sm); display: block }
+.dimg-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ink); color: var(--on-ink); font-size: 11px; cursor: pointer; line-height: 1 }
+label.btn svg, a.btn svg { width: 16px; height: 16px }
+.pimgs { display: grid; gap: 4px; margin-top: 10px; border-radius: var(--r-sm); overflow: hidden; max-width: 100% }
+.pimgs.n1 { grid-template-columns: 1fr } .pimgs.n2 { grid-template-columns: 1fr 1fr } .pimgs.n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr } .pimgs.n4 { grid-template-columns: 1fr 1fr }
+.pimgs.n3 .pimg:first-child { grid-row: span 2 }
+.pimg { display: block; border: 0; padding: 0; background: var(--surface-2); cursor: default; aspect-ratio: 4/3; max-width: 100% }
+.pimgs.n1 .pimg { aspect-ratio: 16/9 }
+.pimgs.n3 .pimg:first-child { aspect-ratio: auto }
+button.pimg { cursor: zoom-in }
+.pimg img { width: 100%; height: 100%; object-fit: cover; display: block }
+.pimgs.big.n1 .pimg { aspect-ratio: auto; max-height: 520px } .pimgs.big.n1 .pimg img { object-fit: contain; max-height: 520px }
+.overlay.lightbox { background: rgba(10,10,14,.92); align-items: center; z-index: 30 }
+.overlay.lightbox img { max-width: 100%; max-height: 90vh; border-radius: var(--r-sm) }
+.x-light { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: max(14px, env(safe-area-inset-right, 0px)); background: rgba(255,255,255,.9) }
+.feed-search { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.feed-search .search { flex: 1 1 220px; width: auto }
+.dm { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start }
+.dm-list { padding: 14px 10px; max-height: calc(100vh - 180px); overflow-y: auto }
+.dm-item { display: flex; gap: 10px; align-items: center; padding: 10px 8px; border-radius: var(--r-sm); text-decoration: none; color: inherit }
+.dm-item:hover { background: var(--surface-2) } .dm-item.on { background: var(--sun-soft) }
+.dm-main { display: flex; flex-direction: column; min-width: 0; flex: 1 }
+.dm-last { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.dm-last.unread { color: var(--ink); font-weight: 700 }
+.dm-item .cnt { background: var(--coral); color: var(--on-ink); border-radius: 999px; font: 700 11px/18px var(--f-num); padding: 0 7px; flex: none }
+.dm-thread { display: flex; flex-direction: column; min-height: 420px; height: calc(100vh - 180px); padding: 0; overflow: hidden }
+.dm-thread.empty-thread { align-items: center; justify-content: center; height: auto; min-height: 320px }
+.dm-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line) }
+.dm-back { display: none }
+.dm-msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 6px; background: var(--canvas) }
+.dm-day { align-self: center; font-size: 12px; color: var(--muted); margin: 8px 0 }
+.msg { display: flex; flex-direction: column; align-items: flex-start; max-width: 78% }
+.msg.me { align-self: flex-end; align-items: flex-end }
+.msg-b { background: var(--surface); border: 1px solid var(--line); padding: 8px 12px; border-radius: 16px 16px 16px 4px; white-space: pre-wrap; overflow-wrap: anywhere }
+.msg.me .msg-b { background: var(--sun); border-color: var(--sun); border-radius: 16px 16px 4px 16px }
+.msg-t { font-size: 11px; color: var(--muted); margin: 2px 4px 0; font-variant-numeric: tabular-nums }
+.dm-form { flex-direction: row !important; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--line); gap: 8px !important }
+.dm-form textarea { min-height: 44px !important; max-height: 140px; resize: none }
+@media (max-width: 760px) {
+  .dm { grid-template-columns: minmax(0, 1fr) }
+  .dm-list.has-thread { display: none }
+  .dm-thread.empty-thread { display: none }
+  .dm-back { display: inline-flex }
+  .dm-thread { height: calc(100vh - 150px) }
+}
 .who-btn { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; color: inherit; min-width: 0 }
 .who-btn > span { display: flex; flex-direction: column; min-width: 0 }
 .who-btn > span b { line-height: 1.35 }
@@ -149,6 +218,7 @@ pre.msg { white-space: pre-wrap; background: var(--surface-2); border-radius: va
 <main class="wrap" id="app"><div class="loading">載入中…</div></main>
 <footer class="foot"><div class="wrap" id="footer"></div></footer>
 <div id="modal-root"></div>
+<div id="notif-root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="assets/config.js"></script>
@@ -156,10 +226,34 @@ pre.msg { white-space: pre-wrap; background: var(--surface-2); border-radius: va
 <script src="assets/demo-data.js"></script>
 <script src="assets/core.js"></script>
 <script>
-const { api, esc, ago, fmtDate, avatar, toast, levelFor, levelProgress, LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES, barChart, squareImage, REPORT_REASONS } = JC;
+const { api, esc, ago, fmtDate, avatar, toast, levelFor, levelProgress, LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES, barChart, squareImage, shrinkImage, safeImg, REPORT_REASONS } = JC;
 const S = { user: null, communities: [], memberships: [], isPA: false, dbv: null, preview: false, recovery: /type=recovery/.test(location.hash), ui: {} };
 const TABS = [['feed', '社群'], ['classroom', '課程'], ['calendar', '行事曆'], ['members', '成員'], ['leaderboard', '排行榜'], ['about', '關於']];
 const ADMIN_SECS = [['overview', '數據總覽'], ['settings', '社群設定'], ['categories', '貼文分類'], ['members', '成員管理'], ['reports', '檢舉處理'], ['invite', '邀請成員'], ['danger', '刪除社群']];
+const ICON = {
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>'
+};
+S.draft = [];              // 發文中還沒送出的圖片
+S.members = [];            // 目前社群的成員（@提及與名字反查用）
+S.pendingPost = null;      // 從通知點進來、換頁後要打開的貼文
+// 內文：跳脫後把 @成員名稱 標起來
+function fmtBody(text, mentionIds) {
+  let h = esc(text || '');
+  const names = (mentionIds || []).map(id => S.members.find(m => m.user_id === id)?.name).filter(Boolean).sort((a, b) => b.length - a.length);
+  for (const n of names) h = h.split('@' + esc(n)).join(`<span class="mention">@${esc(n)}</span>`);
+  return h;
+}
+// 從文字裡找出 @提到的成員
+const extractMentions = text => [...new Set(S.members.filter(m => m.user_id !== S.user.id && m.status === 'active' && text.includes('@' + m.name)).map(m => m.user_id))].slice(0, 20);
+const imgsHtml = (images, big) => {
+  const list = (images || []).map(safeImg).filter(Boolean).slice(0, 4);
+  if (!list.length) return '';
+  return `<div class="pimgs n${list.length}${big ? ' big' : ''}">${list.map((u, i) => big
+    ? `<button type="button" class="pimg" data-act="lightbox" data-src="${esc(u)}" aria-label="放大第 ${i + 1} 張圖片"><img src="${esc(u)}" alt="" loading="lazy"></button>`
+    : `<span class="pimg"><img src="${esc(u)}" alt="" loading="lazy"></span>`).join('')}</div>`;
+};
 const reasonLabel = k => (REPORT_REASONS.find(r => r[0] === k) || [k, k])[1];
 const edited = x => x.edited_at ? ' · 已編輯' : '';
 // 頭像＋名字，點了會打開對方的個人名片
@@ -171,6 +265,8 @@ function parseRoute() {
   const h = location.hash.replace(/^#/, '');
   if (h === 'new') return { view: 'new' };
   if (h === 'me') return { view: 'me' };
+  if (h === 'dm') return { view: 'dm' };
+  if (h.startsWith('dm--')) return { view: 'dm', other: h.slice(4) };
   if (h.startsWith('c--')) { const [, slug, tab] = h.split('--'); return { view: 'community', slug, tab: tab || 'feed' }; }
   return { view: 'home' };
 }
@@ -203,10 +299,14 @@ async function render() {
       html += `<p class="banner warn" style="margin:0 0 16px">資料庫目前是 v${esc(S.dbv)}，這版網站需要 v${esc(JC.CONFIG.DB_VERSION_REQUIRED)}。請到 Supabase 執行最新的升級 SQL（見版本紀錄）。</p>`;
     if (r.view === 'new') html += newCommunityView();
     else if (r.view === 'me') html += profileView();
+    else if (r.view === 'dm') html += await dmView(r);
     else if (r.view === 'community') html += await communityView(r);
     else html += homeView();
     app.innerHTML = html;
+    if (r.view === 'dm' && r.other) afterThreadRender(r.other);
     await renderModal();
+    renderNotif();
+    refreshBadges();
   } catch (e) {
     console.error(e);
     app.innerHTML = `<div class="card"><p class="err">${esc(e.message)}</p><p><a class="btn" href="app.html">回到我的社群</a></p></div>`;
@@ -221,6 +321,8 @@ function renderTop() {
     <span class="spacer"></span>
     ${api.mode === 'demo' ? `<span class="chip sun" title="資料只存在這台瀏覽器">示範模式</span><button class="btn ghost sm" data-act="reset">重設示範資料</button>` : ''}
     ${S.isPA ? `<a class="btn sm" href="console.html">總控台</a>` : ''}
+    ${S.user && S.user.terms_version === JC.CONFIG.TERMS_VERSION ? `<a class="icon-btn" href="#dm" aria-label="私訊" title="私訊">${ICON.mail}<span class="badge" id="dm-badge" hidden></span></a>
+      <button class="icon-btn" id="bell" data-act="notif" aria-label="通知" title="通知" aria-expanded="${!!S.ui.notifOpen}">${ICON.bell}<span class="badge" id="nt-badge" hidden></span></button>` : ''}
     ${S.user ? `<a class="user-chip" href="#me" title="我的個人資料">${avatar(S.user, null, 'sm')}<span class="name">${esc(S.user.name)}</span></a><button class="btn ghost sm" data-act="signout">登出</button>` : ''}`;
 }
 function renderFooter() {
@@ -323,14 +425,18 @@ function homeView() {
   const mine = S.communities.filter(c => memOf(c.id) && memOf(c.id).status !== 'banned');
   const others = S.communities.filter(c => !memOf(c.id) && c.status === 'active');
   const cats = ['全部', ...CATEGORIES.filter(k => others.some(c => c.category === k))];
-  const shown = others.filter(c => (cat === '全部' || c.category === cat) && (!q || (c.name + (c.tagline || '')).toLowerCase().includes(q)));
   return `
     <div class="hello"><div><h1>嗨，${esc(S.user.name)}</h1><p>你加入的社群都在這裡。也可以開一個屬於你自己的。</p></div>
       <a class="btn primary" href="#new">＋ 免費建立社群</a></div>
     ${mine.length ? `<div class="cgrid">${mine.map(communityCard).join('')}</div>` : `<div class="card empty">你還沒有加入任何社群。從下面挑一個，或自己開一個。</div>`}
     <div class="section-h"><h2>探索社群</h2><input class="search" id="search" type="search" placeholder="搜尋社群名稱" value="${esc(S.ui.q || '')}" aria-label="搜尋社群"></div>
     <div class="filters" role="group" aria-label="主題分類" style="margin-bottom:14px">${cats.map(k => `<button data-act="cat0" data-id="${esc(k)}" aria-pressed="${k === cat}">${esc(k)}</button>`).join('')}</div>
-    ${shown.length ? `<div class="cgrid">${shown.map(communityCard).join('')}</div>` : `<div class="card empty">${q || cat !== '全部' ? '找不到符合的社群' : '你已經加入所有社群了'}</div>`}`;
+    <div id="explore">${exploreHtml()}</div>`;
+}
+function exploreHtml() {
+  const q = (S.ui.q || '').trim().toLowerCase(), cat = S.ui.cat0 || '全部';
+  const shown = S.communities.filter(c => !memOf(c.id) && c.status === 'active' && (cat === '全部' || c.category === cat) && (!q || (c.name + (c.tagline || '')).toLowerCase().includes(q)));
+  return shown.length ? `<div class="cgrid">${shown.map(communityCard).join('')}</div>` : `<div class="card empty">${q || cat !== '全部' ? '找不到符合的社群' : '你已經加入所有社群了'}</div>`;
 }
 
 /* ---------- 建立社群 ---------- */
@@ -396,7 +502,9 @@ function sideCard(c, m, top) {
 }
 
 async function feedView(c, m) {
-  const [posts, cats, top, members] = await Promise.all([api.listPosts(c.id), api.listCategories(c.id), api.leaderboard(c.id, 30), api.listMembers(c.id)]);
+  const fq = (S.ui.fq || '').trim();
+  const [posts, cats, top, members] = await Promise.all([fq ? api.searchPosts(c.id, fq) : api.listPosts(c.id), api.listCategories(c.id), api.leaderboard(c.id, 30), api.listMembers(c.id)]);
+  S.members = members;
   const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
   const f = S.ui.cat || 'all';
   const shown = posts.filter(p => f === 'all' || p.category_id === f);
@@ -405,19 +513,23 @@ async function feedView(c, m) {
   const composer = S.ui.composing
     ? `<form class="card f" data-form="post" data-cid="${c.id}">
         <input id="np-title" name="title" required maxlength="200" placeholder="標題" aria-label="標題">
-        <textarea id="np-body" name="body" placeholder="想分享什麼？" aria-label="內容"></textarea>
-        <div class="row"><select id="np-cat" name="category_id" style="flex:1 1 160px;width:auto" aria-label="分類">${cats.filter(x => admin || !x.admin_only).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>
+        <div class="mwrap"><textarea id="np-body" name="body" data-mention placeholder="想分享什麼？輸入 @ 可以提到成員" aria-label="內容"></textarea></div>
+        <div class="img-strip" id="np-imgs">${draftImgsHtml()}</div>
+        <div class="row"><label class="btn ghost sm" for="np-file" title="最多 4 張">${ICON.image}加圖片</label><input id="np-file" type="file" accept="image/jpeg,image/png,image/webp" multiple class="sr-only">
+        <select id="np-cat" name="category_id" style="flex:1 1 140px;width:auto" aria-label="分類">${cats.filter(x => admin || !x.admin_only).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>
         <button type="button" class="btn ghost" data-act="compose-off">取消</button><button class="btn primary">發布</button></div>
         <div id="form-err"></div></form>`
     : `<button class="composer-btn" data-act="compose">${avatar(S.user, m.points, 'sm')}寫點什麼…</button>`;
   const list = shown.length ? shown.map(p => `
     <article class="card post" data-act="open-post" data-id="${p.id}" tabindex="0">
       <div class="row">${who(p.author, pts[p.author.id] ?? 0, '', `<span class="meta">${ago(p.created_at)} · ${esc(catName(p.category_id))}${edited(p)} ${p.pinned ? '<span class="pin">置頂</span>' : ''}</span>`)}</div>
-      <h3>${esc(p.title)}</h3><p class="ex">${esc(p.body)}</p>
+      <h3>${esc(p.title)}</h3><p class="ex">${fmtBody(p.body, p.mentions)}</p>${imgsHtml(p.images)}
       <div class="acts"><button class="like ${p.liked ? 'on' : ''}" data-act="like" data-type="post" data-id="${p.id}" aria-pressed="${p.liked}" aria-label="按讚，目前 ${p.like_count} 個讚">${heart}${p.like_count}</button>
       <span class="like" aria-label="${p.comment_count} 則留言">💬 ${p.comment_count}</span></div>
-    </article>`).join('') : `<div class="card empty">這個分類還沒有貼文，當第一個發文的人吧。</div>`;
+    </article>`).join('') : `<div class="card empty">${fq ? `找不到含有「${esc(fq)}」的貼文或留言` : '這個分類還沒有貼文，當第一個發文的人吧。'}</div>`;
   return `<div class="grid2"><section class="stack">${composer}
+    <div class="feed-search"><input id="fq" class="search" type="search" placeholder="搜尋這個社群的貼文和留言" value="${esc(S.ui.fq || '')}" aria-label="搜尋貼文" enterkeyhint="search">
+      ${fq ? `<span class="small muted">找到 ${shown.length} 篇</span><button class="btn ghost sm" data-act="fq-clear">清除搜尋</button>` : ''}</div>
     <div class="filters" role="group" aria-label="分類篩選"><button data-act="cat" data-id="all" aria-pressed="${f === 'all'}">全部</button>${cats.map(x => `<button data-act="cat" data-id="${x.id}" aria-pressed="${f === x.id}">${esc(x.name)}</button>`).join('')}</div>
     ${list}</section>${sideCard(c, m, top)}</div>`;
 }
@@ -428,6 +540,7 @@ const overlay = (closeAct, label, inner, wide) => `<div class="overlay" data-act
 async function renderModal() {
   const root = document.getElementById('modal-root');
   const r = parseRoute(); const c = r.view === 'community' ? S.communities.find(x => x.slug === r.slug) : null;
+  if (S.ui.lightbox) { root.innerHTML = `<div class="overlay lightbox" data-act="close-lightbox"><button class="btn sm x-light" data-act="close-lightbox" aria-label="關閉">✕</button><img src="${esc(safeImg(S.ui.lightbox))}" alt="放大的圖片"></div>`; return; }
   if (S.ui.report) { root.innerHTML = reportModal(); document.getElementById('rp-reason')?.focus(); return; }
   if (S.ui.profile) { root.innerHTML = await profileModal(c); return; }
   const id = S.ui.post;
@@ -435,6 +548,7 @@ async function renderModal() {
   const [posts, comments, members, cats] = await Promise.all([api.listPosts(c.id), api.listComments(id), api.listMembers(c.id), api.listCategories(c.id)]);
   const p = posts.find(x => x.id === id);
   if (!p) { S.ui.post = null; root.innerHTML = ''; toast('這篇貼文已經被刪除'); return; }
+  S.members = members;
   const pts = Object.fromEntries(members.map(x => [x.user_id, x.points]));
   const admin = isAdminOf(c.id), mine = p.author.id === S.user.id;
   const cmt = x => {
@@ -444,14 +558,14 @@ async function renderModal() {
     <div style="min-width:0;flex:1">
     ${editing ? `<form class="f" data-form="edit-cmt" data-id="${x.id}"><textarea id="ec-body" name="body" required maxlength="5000" style="min-height:70px" aria-label="編輯留言">${esc(x.body)}</textarea>
       <div class="row"><button class="btn primary sm">儲存</button><button type="button" class="btn ghost sm" data-act="edit-cmt-off">取消</button></div><div id="form-err"></div></form>`
-      : `<div class="bubble"><b class="small">${esc(x.author.name)}</b><p>${esc(x.body)}</p></div>`}
+      : `<div class="bubble"><b class="small">${esc(x.author.name)}</b><p>${fmtBody(x.body, x.mentions)}</p></div>`}
     <div class="row small" style="gap:2px;margin-top:2px"><button class="like ${x.liked ? 'on' : ''}" data-act="like" data-type="comment" data-id="${x.id}" aria-pressed="${x.liked}" aria-label="按讚">${heart}${x.like_count}</button>
     ${x.parent_id ? '' : `<button class="btn ghost sm" data-act="reply" data-id="${x.id}">回覆</button>`}
     ${own && !editing ? `<button class="btn ghost sm" data-act="edit-cmt" data-id="${x.id}">編輯</button>` : ''}
     ${own || admin ? `<button class="btn ghost sm danger" data-act="del-cmt" data-id="${x.id}">${S.ui.confirmCmt === x.id ? '確定刪除？' : '刪除'}</button>` : ''}
     ${!own ? `<button class="btn ghost sm" data-act="report" data-type="comment" data-id="${x.id}" data-label="${esc(x.author.name)} 的留言">檢舉</button>` : ''}
     <span class="muted">${ago(x.created_at)}${edited(x)}</span></div>
-    ${S.ui.replyTo === x.id ? `<form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}" data-parent="${x.id}" style="margin-top:6px"><textarea id="reply-body" name="body" required style="min-height:70px" placeholder="回覆 ${esc(x.author.name)}" aria-label="回覆內容"></textarea><div class="row"><button class="btn primary sm">送出回覆</button></div></form>` : ''}</div></div>`;
+    ${S.ui.replyTo === x.id ? `<form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}" data-parent="${x.id}" style="margin-top:6px"><div class="mwrap"><textarea id="reply-body" name="body" data-mention required style="min-height:70px" placeholder="回覆 ${esc(x.author.name)}" aria-label="回覆內容"></textarea></div><div class="row"><button class="btn primary sm">送出回覆</button></div></form>` : ''}</div></div>`;
   };
   const tops = comments.filter(x => !x.parent_id);
   const catName = cats.find(x => x.id === p.category_id)?.name || '未分類';
@@ -461,7 +575,7 @@ async function renderModal() {
         <textarea id="ep-body" name="body" style="min-height:160px" aria-label="內容">${esc(p.body)}</textarea>
         <div class="row"><select id="ep-cat" name="category_id" style="flex:1 1 160px;width:auto" aria-label="分類">${cats.filter(x => admin || !x.admin_only || x.id === p.category_id).map(x => `<option value="${x.id}" ${x.id === p.category_id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
         <button type="button" class="btn ghost" data-act="edit-post-off">取消</button><button class="btn primary">儲存</button></div><div id="form-err"></div></form>`
-    : `<h2>${esc(p.title)}</h2><p class="post-body">${esc(p.body)}</p>`;
+    : `<h2>${esc(p.title)}</h2><p class="post-body">${fmtBody(p.body, p.mentions)}</p>${imgsHtml(p.images, true)}`;
   root.innerHTML = overlay('close-modal', p.title, `
     <div class="row">${who(p.author, pts[p.author.id] ?? 0, '', `<span class="meta">${ago(p.created_at)} · ${esc(catName)}${edited(p)}</span>`)}</div>
     ${body}
@@ -472,7 +586,7 @@ async function renderModal() {
       ${!mine ? `<button class="btn ghost sm" data-act="report" data-type="post" data-id="${p.id}" data-label="${esc(p.title)}">檢舉</button>` : ''}
       ${admin || mine ? `<button class="btn ghost sm danger" data-act="del-post" data-id="${p.id}">${S.ui.confirmDel === p.id ? '確定刪除？' : '刪除'}</button>` : ''}</div>
     <div class="cmts">${tops.map(t => cmt(t) + comments.filter(x => x.parent_id === t.id).map(cmt).join('')).join('') || '<p class="muted small" style="margin:0">還沒有留言</p>'}
-      <form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}"><textarea id="cm-body" name="body" required style="min-height:70px" placeholder="留言…" aria-label="留言內容"></textarea><div class="row"><button class="btn primary sm">留言</button></div></form>
+      <form class="f" data-form="comment" data-post="${p.id}" data-cid="${c.id}"><div class="mwrap"><textarea id="cm-body" name="body" data-mention required style="min-height:70px" placeholder="留言…輸入 @ 可以提到成員" aria-label="留言內容"></textarea></div><div class="row"><button class="btn primary sm">留言</button></div></form>
     </div>`, true);
 }
 
@@ -499,7 +613,8 @@ async function profileModal(c) {
       <div><h2 style="margin:0 0 4px;padding:0">${esc(p.name)}</h2><div class="row" style="gap:6px">${role}${m ? `<span class="small muted">等級 ${lv}「${esc(levelNames(c)[lv - 1])}」· ${m.points} 分</span>` : ''}</div></div></div>
     <p class="post-body" style="margin:16px 0">${p.bio ? esc(p.bio) : '<span class="muted">這位成員還沒有寫自我介紹。</span>'}</p>
     <dl class="kv">${m ? `<dt>加入這個社群</dt><dd>${fmtDate(m.joined_at)}</dd>` : ''}<dt>註冊聚場</dt><dd>${p.created_at ? fmtDate(p.created_at) : '—'}</dd></dl>
-    ${uid === S.user.id ? '<div style="margin-top:16px"><a class="btn sm" href="#me">編輯我的個人資料</a></div>' : ''}`);
+    ${uid === S.user.id ? '<div style="margin-top:16px"><a class="btn sm" href="#me">編輯我的個人資料</a></div>'
+      : (await api.canMessage(uid)) ? `<div style="margin-top:16px"><a class="btn primary sm" href="#dm--${esc(uid)}">${ICON.mail}傳私訊</a></div>` : ''}`);
 }
 
 /* ---------- 課程 ---------- */
@@ -764,6 +879,104 @@ function adminDanger(c) {
       <div id="form-err"></div><div><button class="btn danger">永久刪除這個社群</button></div></form>`;
 }
 
+/* ---------- 發文中的圖片 ---------- */
+function draftImgsHtml() {
+  return S.draft.map((d, i) => `<span class="dimg"><img src="${esc(d.dataUrl)}" alt=""><button type="button" class="dimg-x" data-act="rm-draft-img" data-i="${i}" aria-label="移除第 ${i + 1} 張圖片">✕</button></span>`).join('')
+    + (S.draft.length ? `<span class="small muted">${S.draft.length} / 4 張</span>` : '');
+}
+const refreshDraft = () => { const el = document.getElementById('np-imgs'); if (el) el.innerHTML = draftImgsHtml(); };
+
+/* ---------- 私訊 ---------- */
+async function dmView(r) {
+  const inbox = await api.inbox();
+  const list = `<aside class="card dm-list${r.other ? ' has-thread' : ''}"><h2 style="margin:0 0 8px;font-size:18px">私訊</h2>
+    ${inbox.length ? inbox.map(t => `<a class="dm-item${t.other_id === r.other ? ' on' : ''}" href="#dm--${esc(t.other_id)}">
+      ${avatar({ id: t.other_id, name: t.other_name, avatar: t.other_avatar }, null, 'sm')}
+      <span class="dm-main"><span class="row" style="justify-content:space-between;gap:6px;flex-wrap:nowrap"><b class="name">${esc(t.other_name)}</b><span class="small muted" style="flex:none">${ago(t.last_at)}</span></span>
+        <span class="dm-last${t.unread ? ' unread' : ''}">${t.last_from_me ? '你：' : ''}${esc(t.last_body)}</span></span>
+      ${t.unread ? `<span class="cnt">${t.unread}</span>` : ''}</a>`).join('')
+      : '<p class="small muted" style="margin:0">還沒有私訊。點社群裡任何人的頭像，就能傳私訊給他。</p>'}</aside>`;
+  if (!r.other) return `<div class="dm">${list}<section class="card dm-thread empty-thread"><p class="muted">選一個對話，或點社群成員的頭像開始傳私訊。</p></section></div>`;
+  const [other, msgs, can] = await Promise.all([api.getProfile(r.other), api.thread(r.other), api.canMessage(r.other)]);
+  if (!other) return `<div class="dm">${list}<section class="card dm-thread"><p class="muted">找不到這位使用者。</p></section></div>`;
+  let lastDay = '';
+  const bubbles = msgs.map(m => {
+    const d = new Date(m.created_at), day = d.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' });
+    const sep = day !== lastDay ? `<div class="dm-day">${esc(day)}</div>` : ''; lastDay = day;
+    const meMsg = m.sender_id === S.user.id;
+    return `${sep}<div class="msg${meMsg ? ' me' : ''}"><div class="msg-b">${esc(m.body)}</div><span class="msg-t">${d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })}${meMsg && m.read_at ? ' · 已讀' : ''}</span></div>`;
+  }).join('');
+  return `<div class="dm">${list}<section class="card dm-thread">
+    <div class="dm-head"><a class="btn ghost sm dm-back" href="#dm" aria-label="回到私訊列表">←</a>${who(other, null, 'sm')}</div>
+    <div class="dm-msgs" id="dm-msgs">${bubbles || `<p class="small muted" style="text-align:center;margin:24px 0">跟 ${esc(other.name)} 打聲招呼吧</p>`}</div>
+    ${can ? `<form class="dm-form f" data-form="dm" data-uid="${esc(r.other)}"><textarea id="dm-body" name="body" required maxlength="2000" rows="2" placeholder="輸入訊息，Enter 送出，Shift＋Enter 換行" aria-label="訊息內容"></textarea><button class="btn primary">送出</button></form>`
+      : '<p class="banner small" style="margin:12px 0 0">你們目前沒有在同一個社群，無法傳私訊。</p>'}
+  </section></div>`;
+}
+function afterThreadRender(other) {
+  const box = document.getElementById('dm-msgs'); if (box) box.scrollTop = box.scrollHeight;
+  api.markThreadRead(other).then(refreshBadges).catch(() => {});
+}
+
+/* ---------- 通知 ---------- */
+function notifText(n) {
+  const a = `<b>${esc(n.actor_name || '有人')}</b>`, t = n.post_title ? `「${esc(n.post_title)}」` : '';
+  return ({
+    comment: `${a} 在你的貼文${t}留言`, reply: `${a} 回覆了你的留言`, mention: `${a} 在${t || '一則內容'}提到你`,
+    like_post: `${a} 對你的貼文${t}按讚`, like_comment: `${a} 對你的留言按讚`,
+    approved: `你已經加入「${esc(n.community_name || '')}」，歡迎！`, announcement: `<b>${esc(n.community_name || '')}</b> 發布了公告${t}`
+  })[n.type] || '新通知';
+}
+async function renderNotif() {
+  const root = document.getElementById('notif-root');
+  if (!S.ui.notifOpen || !S.user) { root.innerHTML = ''; return; }
+  const list = await api.listNotifications();
+  const unread = list.filter(n => !n.read_at).length;
+  root.innerHTML = `<div class="notif" role="dialog" aria-label="通知">
+    <div class="row" style="justify-content:space-between;padding:12px 14px 8px"><h2 style="margin:0;font-size:17px">通知</h2>
+      ${unread ? '<button class="btn ghost sm" data-act="notif-all-read">全部標為已讀</button>' : ''}</div>
+    <div class="notif-list">${list.length ? list.map(n => `<button type="button" class="nt${n.read_at ? '' : ' unread'}" data-act="open-notif" data-id="${esc(n.id)}" data-slug="${esc(n.community_slug || '')}" data-post="${esc(n.post_id || '')}">
+      ${n.type === 'approved' || n.type === 'announcement' ? `<span class="av sm nt-icon" aria-hidden="true">${n.type === 'approved' ? '🎉' : '📣'}</span>` : avatar({ id: n.actor_id, name: n.actor_name, avatar: n.actor_avatar }, null, 'sm')}
+      <span class="nt-main"><span>${notifText(n)}</span>${n.snippet && ['comment', 'reply', 'mention'].includes(n.type) ? `<span class="nt-snip">${esc(n.snippet)}</span>` : ''}
+        <span class="small muted">${esc(n.community_name || '')} · ${ago(n.created_at)}</span></span></button>`).join('')
+      : '<p class="small muted" style="padding:20px 14px;margin:0;text-align:center">目前沒有通知</p>'}</div></div>`;
+}
+let badgeBusy = false;
+async function refreshBadges() {
+  if (!S.user || badgeBusy || !document.getElementById('nt-badge')) return;
+  badgeBusy = true;
+  try {
+    const u = await api.unread();
+    const set = (id, n) => { const el = document.getElementById(id); if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : n; } };
+    set('nt-badge', u.notifications); set('dm-badge', u.messages);
+    const total = u.notifications + u.messages;
+    document.title = (total ? `(${total}) ` : '') + '聚場社群';
+  } catch (e) { /* 網路不穩時下次再試 */ }
+  finally { badgeBusy = false; }
+}
+
+/* ---------- @提及選單 ---------- */
+let mentionCtx = null;
+function closeMention() { document.querySelectorAll('.mention-pop').forEach(x => x.remove()); mentionCtx = null; }
+function updateMention(ta) {
+  const before = ta.value.slice(0, ta.selectionStart), m = /(^|[\s　，。！？、])@([^\s@，。！？、]{0,20})$/.exec(before);
+  if (!m || !S.members.length) return closeMention();
+  const q = m[2].toLowerCase();
+  const hits = S.members.filter(x => x.status === 'active' && x.user_id !== S.user.id && x.name.toLowerCase().includes(q)).slice(0, 6);
+  if (!hits.length) return closeMention();
+  mentionCtx = { ta, start: ta.selectionStart - m[2].length - 1, end: ta.selectionStart, hits, idx: mentionCtx?.ta === ta ? Math.min(mentionCtx.idx, hits.length - 1) : 0 };
+  let pop = ta.parentElement.querySelector('.mention-pop');
+  if (!pop) { pop = document.createElement('div'); pop.className = 'mention-pop'; pop.setAttribute('role', 'listbox'); ta.parentElement.appendChild(pop); }
+  pop.innerHTML = hits.map((x, i) => `<button type="button" role="option" aria-selected="${i === mentionCtx.idx}" data-act="pick-mention" data-i="${i}">${avatar({ id: x.user_id, name: x.name, avatar: x.avatar }, null, 'sm')}${esc(x.name)}</button>`).join('');
+}
+function pickMention(i) {
+  const c = mentionCtx; if (!c) return;
+  const name = c.hits[i].name, v = c.ta.value;
+  c.ta.value = v.slice(0, c.start) + '@' + name + ' ' + v.slice(c.end);
+  const pos = c.start + name.length + 2;
+  c.ta.focus(); c.ta.setSelectionRange(pos, pos); closeMention();
+}
+
 /* =====================================================================
    事件
    ===================================================================== */
@@ -776,9 +989,12 @@ async function copyText(text, btn) {
   catch (e) { const el = document.getElementById(btn.dataset.target); if (el.select) el.select(); else { const r = document.createRange(); r.selectNodeContents(el); getSelection().removeAllRanges(); getSelection().addRange(r); } toast('已選取文字，請按複製'); }
 }
 document.addEventListener('click', e => {
+  if (S.ui.notifOpen && !e.target.closest('.notif') && !e.target.closest('#bell')) { S.ui.notifOpen = false; renderNotif(); document.getElementById('bell')?.setAttribute('aria-expanded', 'false'); }
+  if (mentionCtx && !e.target.closest('.mention-pop')) closeMention();
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const a = el.dataset.act, id = el.dataset.id;
+  if (/^close-(modal|profile|report|lightbox)$/.test(a) && a === 'close-lightbox' && e.target.tagName === 'IMG') return;
   if (/^close-(modal|profile|report)$/.test(a) && e.target.closest('[data-stop]') && !e.target.closest('.x') && !el.closest('[data-stop]')) return;
   if (el.tagName === 'A') return;
   e.preventDefault();
@@ -787,6 +1003,21 @@ document.addEventListener('click', e => {
     case 'signout': return act(() => api.signOut());
     case 'reset': if (S.ui.confirmReset) { S.ui = {}; return act(() => api.reset(), '已重設示範資料'); } S.ui.confirmReset = true; el.textContent = '確定重設？'; setTimeout(() => { S.ui.confirmReset = false; renderTop(); }, 3000); return;
     case 'authto': S.ui = { authMode: el.dataset.m }; return render();
+    case 'notif': S.ui.notifOpen = !S.ui.notifOpen; el.setAttribute('aria-expanded', S.ui.notifOpen); return renderNotif();
+    case 'notif-all-read': return api.markNotificationsRead(null).then(() => { renderNotif(); refreshBadges(); });
+    case 'open-notif': {
+      S.ui.notifOpen = false; renderNotif();
+      api.markNotificationsRead([id]).then(refreshBadges).catch(() => {});
+      if (!el.dataset.slug) return;
+      const target = `#c--${el.dataset.slug}--feed`;
+      if (location.hash === target) { if (el.dataset.post) { S.ui.post = el.dataset.post; renderModal(); } return; }
+      S.pendingPost = el.dataset.post || null; location.hash = target; return;
+    }
+    case 'lightbox': S.ui.lightbox = el.dataset.src; return renderModal();
+    case 'close-lightbox': S.ui.lightbox = null; return renderModal();
+    case 'rm-draft-img': S.draft.splice(Number(el.dataset.i), 1); return refreshDraft();
+    case 'pick-mention': return pickMention(Number(el.dataset.i));
+    case 'fq-clear': S.ui.fq = ''; return render();
     case 'profile': if (!el.dataset.uid) return; S.ui.profile = el.dataset.uid; return renderModal();
     case 'close-profile': S.ui.profile = null; return renderModal();
     case 'report': S.ui.report = { type: el.dataset.type, id, label: el.dataset.label || '' }; return renderModal();
@@ -803,7 +1034,7 @@ document.addEventListener('click', e => {
       return act(() => api.resolveReport(id, el.dataset.v), el.dataset.v === 'remove' ? '已刪除內容，檢舉結案' : '已保留內容，檢舉結案');
     case 'rm-avatar': return act(async () => { await api.removeAvatar(); }, '已移除頭像');
     case 'compose': S.ui.composing = true; return render().then(() => document.getElementById('np-title')?.focus());
-    case 'compose-off': S.ui.composing = false; return render();
+    case 'compose-off': S.ui.composing = false; S.draft = []; return render();
     case 'cat': S.ui.cat = id; return render();
     case 'cat0': S.ui.cat0 = id; return render();
     case 'open-post': if (e.target.closest('[data-act="like"]')) return; S.ui.post = id; S.ui.replyTo = null; S.ui.confirmDel = null; return renderModal();
@@ -839,7 +1070,17 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('keydown', e => {
+  if (mentionCtx && e.target === mentionCtx.ta && !e.isComposing) {
+    const pop = mentionCtx.ta.parentElement.querySelector('.mention-pop');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); mentionCtx.idx = (mentionCtx.idx + (e.key === 'ArrowDown' ? 1 : -1) + mentionCtx.hits.length) % mentionCtx.hits.length;
+      pop?.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', i === mentionCtx.idx)); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); return pickMention(mentionCtx.idx); }
+    if (e.key === 'Escape') { e.preventDefault(); return closeMention(); }
+  }
+  if (e.target.id === 'dm-body' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); return; }
   if (e.key === 'Escape') {
+    if (S.ui.notifOpen) { S.ui.notifOpen = false; renderNotif(); return; }
+    if (S.ui.lightbox) { S.ui.lightbox = null; renderModal(); return; }
     if (S.ui.report) { S.ui.report = null; renderModal(); }
     else if (S.ui.profile) { S.ui.profile = null; renderModal(); }
     else if (S.ui.post) { S.ui.post = null; render(); }
@@ -847,15 +1088,24 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.matches('article.post')) { S.ui.post = e.target.dataset.id; renderModal(); }
 });
 let mqTimer;
+// 注音、倉頡等輸入法組字中不要更新畫面，選好字（compositionend）再處理
+document.addEventListener('compositionend', e => { if (e.target.matches('input, textarea')) e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+let fqTimer;
+const refocus = (id, pos) => { const el = document.getElementById(id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) {} } };
 document.addEventListener('input', e => {
+  if (e.isComposing) return;
+  if (e.target.matches('textarea[data-mention]')) return updateMention(e.target);
   if (e.target.id === 'search') {
-    S.ui.q = e.target.value; const pos = e.target.selectionStart;
-    document.getElementById('app').innerHTML = homeView();
-    const s = document.getElementById('search'); s.focus(); s.setSelectionRange(pos, pos);
+    S.ui.q = e.target.value;
+    const box = document.getElementById('explore'); if (box) box.innerHTML = exploreHtml();
+  }
+  if (e.target.id === 'fq') {
+    clearTimeout(fqTimer); const v = e.target.value;
+    fqTimer = setTimeout(async () => { if ((S.ui.fq || '') === v.trim()) return; S.ui.fq = v.trim(); const pos = v.length; await render(); refocus('fq', pos); }, 400);
   }
   if (e.target.id === 'mq') {
     S.ui.mq = e.target.value; clearTimeout(mqTimer);
-    mqTimer = setTimeout(async () => { const pos = e.target.selectionStart; await render(); const s = document.getElementById('mq'); if (s) { s.focus(); s.setSelectionRange(pos, pos); } }, 250);
+    mqTimer = setTimeout(async () => { const pos = e.target.selectionStart; await render(); refocus('mq', pos); }, 300);
   }
 });
 document.addEventListener('submit', async e => {
@@ -898,8 +1148,22 @@ document.addEventListener('submit', async e => {
       if (d.confirm.trim() !== f.dataset.slug) throw new Error('輸入的網址代稱不一致，社群沒有被刪除');
       await api.deleteCommunity(f.dataset.cid); S.ui = {}; location.hash = ''; toast('社群已刪除'); return;
     }
-    if (kind === 'post') { await api.createPost({ community_id: f.dataset.cid, title: d.title.trim(), body: d.body.trim(), category_id: d.category_id }); S.ui.composing = false; toast('已發布'); }
-    if (kind === 'comment') { await api.createComment({ post_id: f.dataset.post, community_id: f.dataset.cid, parent_id: f.dataset.parent || null, body: d.body.trim() }); S.ui.replyTo = null; }
+    if (kind === 'post') {
+      const images = [];
+      if (S.draft.length) { toast('上傳圖片中…'); for (const img of S.draft) images.push(await api.uploadPostImage(img)); }
+      const body = d.body.trim();
+      await api.createPost({ community_id: f.dataset.cid, title: d.title.trim(), body, category_id: d.category_id, images, mentions: extractMentions(d.title + ' ' + body) });
+      S.ui.composing = false; S.draft = []; toast('已發布');
+    }
+    if (kind === 'comment') {
+      const body = d.body.trim();
+      await api.createComment({ post_id: f.dataset.post, community_id: f.dataset.cid, parent_id: f.dataset.parent || null, body, mentions: extractMentions(body) });
+      S.ui.replyTo = null; closeMention();
+    }
+    if (kind === 'dm') {
+      await api.sendMessage(f.dataset.uid, d.body); await render();
+      document.getElementById('dm-body')?.focus(); return;
+    }
     if (kind === 'course') { const k = await api.createCourse({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), unlock_level: Number(d.unlock_level) }); S.ui.course = k.id; toast('已新增課程'); }
     if (kind === 'module') { await api.createModule({ course_id: f.dataset.course, title: d.title.trim(), drip_days: Number(d.drip_days) || 0 }); toast('已新增章節'); }
     if (kind === 'lesson') { const l = await api.createLesson({ community_id: f.dataset.cid, course_id: f.dataset.course, module_id: d.module_id, title: d.title.trim(), video_url: d.video_url.trim(), body: d.body }); S.ui.lesson = l?.id || null; toast('已新增單元'); }
@@ -908,6 +1172,16 @@ document.addEventListener('submit', async e => {
   } catch (err) {
     if (errBox) errBox.innerHTML = `<p class="err">${esc(err.message)}</p>`; else toast(err.message);
     if (btn) btn.disabled = false;
+  }
+});
+// 發文加圖片
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'np-file') return;
+  const files = [...e.target.files]; e.target.value = '';
+  if (S.draft.length + files.length > 4) toast('一篇貼文最多 4 張圖片');
+  for (const f of files.slice(0, 4 - S.draft.length)) {
+    try { S.draft.push(await shrinkImage(f, api.mode === 'demo' ? 1000 : 1600, api.mode === 'demo' ? 0.72 : 0.82)); refreshDraft(); }
+    catch (err) { toast(err.message); }
   }
 });
 // 換頭像
@@ -921,7 +1195,21 @@ document.addEventListener('change', async e => {
 document.addEventListener('input', e => { if (e.target.id === 'pf-bio') { const n = document.getElementById('pf-count'); if (n) n.textContent = `${e.target.value.length} / 300`; } });
 // 從重設密碼信回來
 api.onAuthEvent(ev => { if (ev === 'PASSWORD_RECOVERY') { S.recovery = true; render(); } });
-window.addEventListener('hashchange', () => { const keep = { authMode: S.ui.authMode, adminSec: location.hash.endsWith('--admin') ? S.ui.adminSec : null }; S.ui = keep; render(); });
+window.addEventListener('hashchange', () => {
+  const keep = { authMode: S.ui.authMode, adminSec: location.hash.endsWith('--admin') ? S.ui.adminSec : null };
+  if (S.pendingPost) { keep.post = S.pendingPost; S.pendingPost = null; }
+  S.ui = keep; closeMention(); render();
+});
+// 每 30 秒更新紅點；回到這個分頁時也更新。私訊對話開著時每 10 秒檢查新訊息
+setInterval(refreshBadges, 30000);
+window.addEventListener('focus', refreshBadges);
+let lastThreadSig = '';
+setInterval(async () => {
+  const r = parseRoute();
+  if (r.view !== 'dm' || !r.other || document.hidden) return;
+  const ta = document.getElementById('dm-body'); if (ta && ta.value) return;
+  try { const msgs = await api.thread(r.other); const sig = msgs.length + ':' + (msgs.at(-1)?.id || ''); if (sig !== lastThreadSig) { lastThreadSig = sig; render(); } } catch (e) {}
+}, 10000);
 render();
 </script>
 

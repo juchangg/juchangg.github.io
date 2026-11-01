@@ -150,8 +150,10 @@ document.addEventListener('click', async e => {
     await load(); render();
   } catch (err) { toast(err.message); }
 });
+// 注音等輸入法組字中不要更新畫面，選好字再搜尋
+document.addEventListener('compositionend', e => { if (e.target.id === 'q') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
 document.addEventListener('input', e => {
-  if (e.target.id !== 'q') return;
+  if (e.target.id !== 'q' || e.isComposing) return;
   S.ui.q = e.target.value; const pos = e.target.selectionStart; render();
   const s = document.getElementById('q'); s.focus(); s.setSelectionRange(pos, pos);
 });

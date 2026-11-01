@@ -190,6 +190,14 @@
     }
   ];
 
+  // 示範私訊（'ME' = 你自己）
+  const DMS = [
+    ['u01', 'ME', '週四直播我會準時到！想先問：緊急預備金放高利活存可以嗎？', 30, true],
+    ['ME', 'u01', '可以，重點是隨時領得出來。直播時我也會講到這題', 29, true],
+    ['u05', 'ME', '想請問資產負債表模板，我可以分享到我的 IG 嗎？', 3, false],
+    ['u04', 'ME', '謝謝你回答預備金的問題，超有幫助 🙏', 1.2, false]
+  ];
+
   /* ---------- 展開成資料列 ---------- */
   function expand() {
     let seed = 20261030;
@@ -265,6 +273,7 @@
         shuffle(memberIds).slice(0, e.rsvp).forEach(u => out.rsvps.push({ event_id: eid, user_id: u }));
       });
     }
+    out.messages = DMS.map(([from, to, body, hoursAgo, read], i) => ({ id: 'dm' + i, from, to, body, hoursAgo, read }));
     return out;
   }
 

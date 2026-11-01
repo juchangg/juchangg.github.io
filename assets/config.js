@@ -10,7 +10,7 @@ window.JC_CONFIG = {
   SUPABASE_URL: 'https://nlxciibsriyjldisuefr.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_M-a1saZMHa06aZQiQ_e0LA_5y6MXHdN',
   LIVE_HOSTS: [],                 // 之後買了自己的網域，例如 'juchang.app'，加在這裡
-  DB_VERSION_REQUIRED: '0.3.0',   // 這版前端需要的資料庫版本
+  DB_VERSION_REQUIRED: '0.4.0',   // 這版前端需要的資料庫版本
 
   // 服務條款與隱私權政策（改了條款內容就把版本日期往後改，所有人下次登入會被要求重新同意）
   TERMS_VERSION: '2026-11-01',

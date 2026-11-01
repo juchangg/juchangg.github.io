@@ -58,6 +58,23 @@
       img.src = url;
     });
   }
+  // 貼文圖片：長邊縮到 max 以內的 JPEG
+  function shrinkImage(file, max = 1600, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/.test(file.type)) return reject(new Error('請選擇 JPG、PNG 或 WebP 圖片'));
+      if (file.size > 20 * 1024 * 1024) return reject(new Error('圖片太大了，請選 20MB 以內的圖片'));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => b ? resolve({ blob: b, dataUrl: c.toDataURL('image/jpeg', quality) }) : reject(new Error('圖片處理失敗')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('這張圖片打不開，請換一張')); };
+      img.src = url;
+    });
+  }
   const REPORT_REASONS = [['spam', '垃圾訊息或廣告'], ['scam', '詐騙或不實資訊'], ['harassment', '騷擾或霸凌'], ['inappropriate', '不當內容'], ['other', '其他']];
   function toast(msg) {
     let t = document.getElementById('toast');
@@ -88,10 +105,31 @@
      A. 示範模式（瀏覽器 localStorage）
      ===================================================================== */
   function makeDemoApi() {
-    const KEY = 'juchang-demo-v3';
+    const KEY = 'juchang-demo-v4';
     let db = load();
     function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {} return seed(); }
     function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+    // 依照資料庫觸發器的規則，替示範帳號產生最近 3 天的通知
+    function seedNotifications(x, me, t) {
+      const out = [], mine = id => me(id) === 'u-me', recent = h => h < 72;
+      const postOf = id => x.posts.find(p => p.id === id), cmtOf = id => x.comments.find(c => c.id === id);
+      for (const c of x.comments) {
+        if (!recent(c.hoursAgo) || mine(c.author_id)) continue;
+        const parent = c.parent_id && cmtOf(c.parent_id), post = postOf(c.post_id);
+        if (parent && mine(parent.author_id)) out.push({ type: 'reply', actor: c.author_id, c, post });
+        else if (mine(post.author_id)) out.push({ type: 'comment', actor: c.author_id, c, post });
+      }
+      for (const l of x.likes) {
+        if (!recent(l.hoursAgo) || !mine(l.recipient_id) || mine(l.user_id)) continue;
+        const c = l.target_type === 'comment' ? cmtOf(l.target_id) : null, post = c ? postOf(c.post_id) : postOf(l.target_id);
+        out.push({ type: c ? 'like_comment' : 'like_post', actor: l.user_id, c, post, h: l.hoursAgo });
+      }
+      return out.map((n, i) => {
+        const h = n.h ?? n.c.hoursAgo;
+        return { id: 'n' + i, user_id: 'u-me', actor_id: me(n.actor), community_id: n.post.community_id, type: n.type, post_id: n.post.id,
+          comment_id: n.c?.id || null, created_at: t(h), read_at: h > 24 ? t(h) : null };
+      });
+    }
     function seed() {
       const x = window.JC_DEMO.expand(), H = 3600000, t = h => new Date(Date.now() - h * H).toISOString();
       const me = id => id === 'ME' ? 'u-me' : id;
@@ -113,6 +151,8 @@
         courses: x.courses.map(k => ({ ...k, created_at: t(k.hoursAgo) })),
         modules: x.modules, lessons: x.lessons,
         progress: x.progress.map(p => ({ user_id: me(p.user_id), lesson_id: p.lesson_id, completed_at: t(p.hoursAgo) })),
+        messages: (x.messages || []).map(m => ({ id: m.id, sender_id: me(m.from), recipient_id: me(m.to), body: m.body, created_at: t(m.hoursAgo), read_at: m.read ? t(m.hoursAgo) : null })),
+        notifications: seedNotifications(x, me, t),
         events: x.events.map(e => ({ id: e.id, community_id: e.community_id, title: e.title, description: e.description, starts_at: at(e.dayOffset, e.hh, e.mm),
           duration_min: e.duration_min, location_url: e.location_url, created_by: me(e.created_by), created_at: t(e.created_hoursAgo) })),
         rsvps: x.rsvps.map(r => ({ event_id: r.event_id, user_id: me(r.user_id) }))
@@ -131,6 +171,12 @@
     const liked = (t, id) => db.likes.some(l => l.target_type === t && l.target_id === id && l.user_id === S());
     const need = (cond, msg) => { if (!cond) throw new Error(msg || '你沒有權限做這件事'); };
     const since = days => Date.now() - days * 86400000;
+    function notify(user, actor, cid, type, post, comment) {
+      if (!user || user === actor || mem(cid, user)?.status !== 'active') return;
+      db.notifications.push({ id: newId(), user_id: user, actor_id: actor, community_id: cid, type, post_id: post || null, comment_id: comment || null, created_at: nowIso(), read_at: null });
+    }
+    const sharesCommunity = other => db.memberships.some(a => a.user_id === S() && a.status === 'active' &&
+      db.memberships.some(b => b.user_id === other && b.status === 'active' && b.community_id === a.community_id));
     const memberCount = cid => db.memberships.filter(m => m.community_id === cid && m.status === 'active').length;
     const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
     const weekStart = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
@@ -235,7 +281,13 @@
         need(isMember(d.community_id));
         const cat = db.categories.find(c => c.id === d.category_id);
         if (cat?.admin_only && !isAdmin(d.community_id)) throw new Error(`只有管理員可以在「${cat.name}」發文`);
-        db.posts.push({ id: newId(), ...d, author_id: S(), pinned: false, created_at: nowIso() }); save();
+        const p = { id: newId(), images: [], mentions: [], ...d, author_id: S(), pinned: false, created_at: nowIso() };
+        db.posts.push(p);
+        const done = new Set(p.mentions);
+        p.mentions.forEach(u => notify(u, S(), p.community_id, 'mention', p.id));
+        if (cat?.admin_only) db.memberships.filter(m => m.community_id === p.community_id && m.status === 'active' && !done.has(m.user_id))
+          .forEach(m => notify(m.user_id, S(), p.community_id, 'announcement', p.id));
+        save();
       },
       async togglePin(id) { const p = db.posts.find(x => x.id === id); need(isAdmin(p.community_id)); p.pinned = !p.pinned; save(); },
       async updatePost(id, patch) {
@@ -244,7 +296,7 @@
           const cat = db.categories.find(c => c.id === patch.category_id);
           need(cat && cat.community_id === p.community_id && (!cat.admin_only || isAdmin(p.community_id)), '不能把貼文移到這個分類');
         }
-        Object.assign(p, { title: patch.title, body: patch.body, category_id: patch.category_id || p.category_id, edited_at: nowIso() }); save();
+        Object.assign(p, { title: patch.title, body: patch.body, category_id: patch.category_id || p.category_id, images: patch.images ?? p.images ?? [], edited_at: nowIso() }); save();
       },
       async updateComment(id, body) {
         const c = db.comments.find(x => x.id === id); need(c && c.author_id === S(), '只能編輯自己的留言');
@@ -291,7 +343,17 @@
         return db.comments.filter(c => c.post_id === pid).sort((a, b) => a.created_at.localeCompare(b.created_at))
           .map(c => ({ ...c, author: author(c.author_id), like_count: countLikes('comment', c.id), liked: liked('comment', c.id) }));
       },
-      async createComment(d) { need(isMember(d.community_id)); db.comments.push({ id: newId(), ...d, author_id: S(), created_at: nowIso() }); save(); },
+      async createComment(d) {
+        need(isMember(d.community_id));
+        const c = { id: newId(), mentions: [], ...d, author_id: S(), created_at: nowIso() };
+        db.comments.push(c);
+        const done = new Set();
+        c.mentions.forEach(u => { if (!done.has(u)) { notify(u, S(), c.community_id, 'mention', c.post_id, c.id); done.add(u); } });
+        const parent = c.parent_id && db.comments.find(x => x.id === c.parent_id), post = db.posts.find(x => x.id === c.post_id);
+        if (parent && !done.has(parent.author_id)) { notify(parent.author_id, S(), c.community_id, 'reply', c.post_id, c.id); done.add(parent.author_id); }
+        if (post && !done.has(post.author_id)) notify(post.author_id, S(), c.community_id, 'comment', c.post_id, c.id);
+        save();
+      },
       async toggleLike(type, id) {
         const t = (type === 'post' ? db.posts : db.comments).find(x => x.id === id);
         if (!t) throw new Error('找不到這則內容');
@@ -301,7 +363,10 @@
         const rm = mem(t.community_id, t.author_id);
         const delta = i >= 0 ? -1 : 1;
         if (i >= 0) db.likes.splice(i, 1);
-        else db.likes.push({ user_id: S(), target_type: type, target_id: id, community_id: t.community_id, recipient_id: t.author_id, created_at: nowIso() });
+        else {
+          db.likes.push({ user_id: S(), target_type: type, target_id: id, community_id: t.community_id, recipient_id: t.author_id, created_at: nowIso() });
+          notify(t.author_id, S(), t.community_id, type === 'post' ? 'like_post' : 'like_comment', type === 'post' ? id : t.post_id, type === 'post' ? null : id);
+        }
         if (rm) rm.points = Math.max(0, rm.points + delta);
         db.point_events.push({ community_id: t.community_id, user_id: t.author_id, delta, created_at: nowIso() });
         save();
@@ -326,7 +391,12 @@
         need(m.role !== 'owner', '不能變更擁有者');
         need(m.role !== 'admin' || isOwner(cid), '只有擁有者可以移除管理員');
         if (status === 'removed') db.memberships = db.memberships.filter(x => x !== m);
-        else { if (m.status === 'pending' && status === 'active') m.joined_at = nowIso(); m.status = status; }
+        else {
+          const approved = m.status === 'pending' && status === 'active';
+          if (approved) m.joined_at = nowIso();
+          m.status = status;
+          if (approved) db.notifications.push({ id: newId(), user_id: uid, actor_id: S(), community_id: cid, type: 'approved', post_id: null, comment_id: null, created_at: nowIso(), read_at: null });
+        }
         save();
       },
       async setMemberRole(cid, uid, role) {
@@ -387,6 +457,48 @@
         const i = db.rsvps.findIndex(r => r.event_id === eid && r.user_id === S());
         if (i >= 0) db.rsvps.splice(i, 1); else db.rsvps.push({ event_id: eid, user_id: S() });
         save();
+      },
+
+      /* 通知 */
+      async unread() {
+        return { notifications: db.notifications.filter(n => n.user_id === S() && !n.read_at).length,
+          messages: db.messages.filter(m => m.recipient_id === S() && !m.read_at).length };
+      },
+      async listNotifications() {
+        return db.notifications.filter(n => n.user_id === S()).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 40).map(n => {
+          const a = user(n.actor_id), c = comm(n.community_id), p = db.posts.find(x => x.id === n.post_id), k = db.comments.find(x => x.id === n.comment_id);
+          return { ...n, actor_name: a.name, actor_avatar: a.avatar || '', community_slug: c?.slug, community_name: c?.name, post_title: p?.title || null,
+            snippet: (k?.body || p?.body || '').slice(0, 80) };
+        });
+      },
+      async markNotificationsRead(ids) {
+        db.notifications.forEach(n => { if (n.user_id === S() && !n.read_at && (!ids || ids.includes(n.id))) n.read_at = nowIso(); }); save();
+      },
+      /* 私訊 */
+      async canMessage(other) { return !!S() && other !== S() && sharesCommunity(other); },
+      async inbox() {
+        const mine = db.messages.filter(m => m.sender_id === S() || m.recipient_id === S()), by = new Map();
+        mine.sort((a, b) => b.created_at.localeCompare(a.created_at)).forEach(m => { const o = m.sender_id === S() ? m.recipient_id : m.sender_id; if (!by.has(o)) by.set(o, m); });
+        return [...by.entries()].map(([o, m]) => ({ other_id: o, other_name: user(o).name, other_avatar: user(o).avatar || '', last_body: m.body.slice(0, 80), last_at: m.created_at,
+          last_from_me: m.sender_id === S(), unread: mine.filter(x => x.sender_id === o && x.recipient_id === S() && !x.read_at).length }));
+      },
+      async thread(other) {
+        return db.messages.filter(m => (m.sender_id === S() && m.recipient_id === other) || (m.sender_id === other && m.recipient_id === S()))
+          .sort((a, b) => a.created_at.localeCompare(b.created_at));
+      },
+      async sendMessage(other, body) {
+        need(sharesCommunity(other), '只能傳私訊給跟你在同一個社群的成員');
+        body = body.trim(); if (!body) throw new Error('訊息不能是空的'); if (body.length > 2000) throw new Error('訊息最多 2000 字');
+        db.messages.push({ id: newId(), sender_id: S(), recipient_id: other, body, created_at: nowIso(), read_at: null }); save();
+      },
+      async markThreadRead(other) { db.messages.forEach(m => { if (m.sender_id === other && m.recipient_id === S() && !m.read_at) m.read_at = nowIso(); }); save(); },
+      /* 圖片與搜尋 */
+      async uploadPostImage(img) { need(S(), '請先登入'); return img.dataUrl; },
+      async searchPosts(cid, q) {
+        need(isMember(cid), '只有成員可以搜尋這個社群');
+        q = q.trim().toLowerCase(); if (!q) return [];
+        const hit = p => (p.title + ' ' + p.body).toLowerCase().includes(q) || db.comments.some(c => c.post_id === p.id && c.body.toLowerCase().includes(q));
+        return (await this.listPosts(cid)).filter(hit);
       },
 
       /* 總控台 */
@@ -537,11 +649,13 @@
         if (ids.length) ok(await sb.from('comments').select('post_id').in('post_id', ids)).forEach(c => cc[c.post_id] = (cc[c.post_id] || 0) + 1);
         return ps.map(p => ({ ...p, author: prof(p.author), like_count: li[p.id]?.n || 0, liked: !!li[p.id]?.mine, comment_count: cc[p.id] || 0 }));
       },
-      async createPost(d) { ok(await sb.from('posts').insert({ ...d, author_id: me.id })); },
+      async createPost(d) { ok(await sb.from('posts').insert({ images: [], mentions: [], ...d, author_id: me.id })); },
       async togglePin(id) { const p = ok(await sb.from('posts').select('pinned').eq('id', id).single()); ok(await sb.from('posts').update({ pinned: !p.pinned }).eq('id', id)); },
       async deletePost(id) { ok(await sb.from('posts').delete().eq('id', id)); },
       async updatePost(id, patch) {
-        const d = ok(await sb.from('posts').update({ title: patch.title, body: patch.body, category_id: patch.category_id }).eq('id', id).select('id'));
+        const upd = { title: patch.title, body: patch.body, category_id: patch.category_id };
+        if (patch.images) upd.images = patch.images;
+        const d = ok(await sb.from('posts').update(upd).eq('id', id).select('id'));
         if (!d.length) throw new Error('只能編輯自己的貼文');
       },
       async updateComment(id, body) {
@@ -591,6 +705,32 @@
       async deleteEvent(id) { ok(await sb.from('events').delete().eq('id', id)); },
       async toggleRsvp(eid) { await toggleRow('rsvps', { event_id: eid, user_id: me.id }); },
 
+      async unread() { const { data, error } = await sb.rpc('my_unread'); return error ? { notifications: 0, messages: 0 } : data; },
+      async listNotifications() { return ok(await sb.rpc('my_notifications', { lim: 40 })); },
+      async markNotificationsRead(ids) { ok(await sb.rpc('mark_notifications_read', { ids: ids || null })); },
+      async canMessage(other) { const { data, error } = await sb.rpc('can_message', { other }); return !error && !!data; },
+      async inbox() { return ok(await sb.rpc('dm_inbox')); },
+      async thread(other) { return ok(await sb.rpc('dm_thread', { other, lim: 200 })); },
+      async sendMessage(other, body) { ok(await sb.rpc('send_message', { to_user: other, p_body: body })); },
+      async markThreadRead(other) { ok(await sb.rpc('mark_thread_read', { other })); },
+      async uploadPostImage(img) {
+        const path = `${me.id}/${newId()}.jpg`;
+        const { error } = await sb.storage.from('post-images').upload(path, img.blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+        if (error) throw new Error(/row-level security|Unauthorized/.test(error.message) ? '圖片上傳失敗：沒有權限，請確認已執行 v0.4.0 資料庫升級' : '圖片上傳失敗：' + error.message);
+        return sb.storage.from('post-images').getPublicUrl(path).data.publicUrl;
+      },
+      async searchPosts(cid, q) {
+        const ids = ok(await sb.rpc('search_posts', { cid, q })).map(r => typeof r === 'string' ? r : r.search_posts);
+        if (!ids.length) return [];
+        const all = await this.listPostsByIds(ids);
+        return ids.map(id => all.find(p => p.id === id)).filter(Boolean);
+      },
+      async listPostsByIds(ids) {
+        const ps = ok(await sb.from('posts').select(`*, author:profiles(${PF})`).in('id', ids));
+        const li = await likeInfo('post', ids), cc = {};
+        ok(await sb.from('comments').select('post_id').in('post_id', ids)).forEach(c => cc[c.post_id] = (cc[c.post_id] || 0) + 1);
+        return ps.map(p => ({ ...p, author: prof(p.author), like_count: li[p.id]?.n || 0, liked: !!li[p.id]?.mine, comment_count: cc[p.id] || 0 }));
+      },
       async isPlatformAdmin() { const { data, error } = await sb.rpc('is_platform_admin'); return !error && !!data; },
       async platformOverview() { return ok(await sb.rpc('platform_overview')); },
       async adminCommunities() { return ok(await sb.rpc('admin_communities')); },
@@ -602,7 +742,7 @@
   window.JC = {
     CONFIG, LIVE, api: LIVE ? makeSupabaseApi() : makeDemoApi(),
     LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES,
-    levelFor, levelProgress, esc, ago, fmtDate, avatar, toast, versionTag, logo, barChart, squareImage, REPORT_REASONS,
+    levelFor, levelProgress, esc, ago, fmtDate, avatar, toast, versionTag, logo, barChart, squareImage, shrinkImage, safeImg, REPORT_REASONS,
     verLt: (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; }
   };
 })();
