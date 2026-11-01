@@ -210,6 +210,32 @@ button.pimg { cursor: zoom-in }
 .user-chip { text-decoration: none; color: inherit; border-radius: 999px; padding: 2px 8px 2px 2px }
 .user-chip:hover { background: var(--surface-2) }
 pre.msg { white-space: pre-wrap; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px 14px; margin: 0; font: inherit }
+.mod-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px }
+.mod-h h4 { flex: 1; min-width: 0 }
+.mini { display: inline-flex; gap: 2px; flex: none }
+.updown { display: inline-flex; gap: 2px; flex: none }
+.ib { width: 28px; height: 28px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; cursor: pointer; font-size: 13px; line-height: 1; color: var(--ink-2); display: inline-grid; place-items: center }
+.ib:hover:not(:disabled) { background: var(--sun-soft); border-color: var(--sun) }
+.ib:disabled { opacity: .35; cursor: default }
+.lrow { display: flex; align-items: center; gap: 4px }
+.lrow .lesson-link { flex: 1; min-width: 0 }
+.sort-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line) }
+.sort-row:last-child { border-bottom: 0 }
+.mod-edit { gap: 8px; padding: 8px; background: var(--surface-2); border-radius: var(--r-sm); margin-bottom: 6px }
+.pend { border-bottom: 1px solid var(--line); padding-bottom: 8px }
+.pend:last-child { border-bottom: 0 }
+.pend .mrow { border-bottom: 0 }
+.answers { margin: 4px 0 4px 46px; padding: 10px 12px; background: var(--surface-2); border-radius: var(--r-sm); font-size: 14px }
+.answers dt { font-size: 12px; color: var(--muted) }
+.answers dd { margin: 2px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere }
+.answers dd:last-child { margin-bottom: 0 }
+.ans-d summary { cursor: pointer; color: var(--ink-2); margin-top: 2px; width: fit-content }
+.ans-d .answers { margin-left: 0 }
+.join-form { width: 100%; gap: 10px }
+.ev-cal { margin-top: 8px; color: var(--muted) }
+.ev-cal a, .ev-cal .link-btn { color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-strong) }
+.prog-t td:first-child { min-width: 140px }
+@media (max-width: 560px) { .answers { margin-left: 0 } }
 </style>
 </head>
 <body>
@@ -229,7 +255,10 @@ pre.msg { white-space: pre-wrap; background: var(--surface-2); border-radius: va
 const { api, esc, ago, fmtDate, avatar, toast, levelFor, levelProgress, LEVEL_PTS, DEFAULT_LEVEL_NAMES, CATEGORIES, THEMES, barChart, squareImage, shrinkImage, safeImg, REPORT_REASONS } = JC;
 const S = { user: null, communities: [], memberships: [], isPA: false, dbv: null, preview: false, recovery: /type=recovery/.test(location.hash), ui: {} };
 const TABS = [['feed', '社群'], ['classroom', '課程'], ['calendar', '行事曆'], ['members', '成員'], ['leaderboard', '排行榜'], ['about', '關於']];
-const ADMIN_SECS = [['overview', '數據總覽'], ['settings', '社群設定'], ['categories', '貼文分類'], ['members', '成員管理'], ['reports', '檢舉處理'], ['invite', '邀請成員'], ['danger', '刪除社群']];
+const ADMIN_SECS = [['overview', '數據總覽'], ['settings', '社群設定'], ['onboard', '入會設定'], ['categories', '貼文分類'], ['members', '成員管理'], ['progress', '課程進度'], ['reports', '檢舉處理'], ['invite', '邀請成員'], ['danger', '刪除社群']];
+const fmtWhen = iso => new Date(iso).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+const upDown = (kind, ids, i, label) => `<span class="updown"><button type="button" class="ib" data-act="move" data-kind="${kind}" data-ids="${ids.join(',')}" data-i="${i}" data-d="-1" aria-label="${esc(label)} 上移" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="ib" data-act="move" data-kind="${kind}" data-ids="${ids.join(',')}" data-i="${i}" data-d="1" aria-label="${esc(label)} 下移" ${i === ids.length - 1 ? 'disabled' : ''}>↓</button></span>`;
+const lessonCount = k => k.modules.reduce((n, md) => n + md.lessons.length, 0);
 const ICON = {
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -641,8 +670,11 @@ async function classroomView(c, m) {
         ${acc.ok ? `<div class="prog" aria-label="完成度 ${pct}%"><span style="width:${pct}%"></span></div><span class="small muted">完成 ${pct}% · ${all.length} 個單元</span>` : ''}
       </button>`;
     }).join('');
+    const ids = courses.map(k => k.id);
     return `${courses.length ? `<div class="cgrid">${cards}</div>` : `<div class="card empty">還沒有課程${admin ? '，用下面的表單新增第一門課。' : '。'}</div>`}
-      ${admin ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增課程（管理員）</summary>
+      ${admin && courses.length > 1 ? `<details class="admin-box" style="margin-top:18px" ${S.ui.sortOpen ? 'open' : ''}><summary>↕ 調整課程順序</summary>
+        ${courses.map((k, i) => `<div class="sort-row"><span>${esc(k.title)}${k.published ? '' : ' <span class="chip">草稿</span>'}</span>${upDown('course', ids, i, k.title)}</div>`).join('')}</details>` : ''}
+      ${admin ? `<details class="admin-box" style="margin-top:12px"><summary>＋ 新增課程（管理員）</summary>
         <form class="f" data-form="course" data-cid="${c.id}"><label>課程名稱<input id="nk-title" name="title" required></label>
         <label>說明<input id="nk-desc" name="description"></label>
         <label>解鎖等級<select id="nk-lv" name="unlock_level">${levelNames(c).map((n, i) => `<option value="${i + 1}">等級 ${i + 1}・${esc(n)}</option>`).join('')}</select></label>
@@ -659,16 +691,39 @@ async function classroomView(c, m) {
     ? (api.mode === 'supabase' && yt ? `<iframe class="vframe" src="https://www.youtube.com/embed/${esc(yt)}" allowfullscreen title="課程影片"></iframe>`
       : `<div class="video">▶<div style="min-width:0"><b>課程影片</b><div class="small"><a href="${esc(lesson.video_url)}" target="_blank" rel="noopener">${esc(lesson.video_url)}</a></div></div></div>`) : '';
   return `<div class="row" style="margin-bottom:14px"><button class="btn ghost sm" data-act="close-course">← 所有課程</button><h2 style="margin:0;font-size:20px">${esc(open.title)}</h2>
-      ${admin ? `<span class="spacer"></span><button class="btn sm" data-act="publish" data-id="${open.id}" data-v="${!open.published}">${open.published ? '改回草稿' : '發布課程'}</button>` : ''}</div>
+      ${admin ? `<span class="spacer"></span><button class="btn ghost sm" data-act="edit-course" aria-expanded="${!!S.ui.editCourse}">編輯課程</button><button class="btn sm" data-act="publish" data-id="${open.id}" data-v="${!open.published}">${open.published ? '改回草稿' : '發布課程'}</button>` : ''}</div>
+    ${admin && S.ui.editCourse ? `<form class="card f" data-form="course-edit" data-id="${open.id}" style="margin-bottom:14px">
+      <label>課程名稱<input id="ck-title" name="title" required maxlength="80" value="${esc(open.title)}"></label>
+      <label>說明<input id="ck-desc" name="description" maxlength="200" value="${esc(open.description || '')}"></label>
+      <label>解鎖等級<select id="ck-lv" name="unlock_level">${levelNames(c).map((n, i) => `<option value="${i + 1}" ${open.unlock_level === i + 1 ? 'selected' : ''}>等級 ${i + 1}・${esc(n)}</option>`).join('')}</select></label>
+      <div id="form-err"></div>
+      <div class="row"><button class="btn primary sm">儲存</button><button type="button" class="btn ghost sm" data-act="edit-course">取消</button><span class="spacer"></span>
+        <button type="button" class="btn ghost sm danger" data-act="del-course" data-id="${open.id}">${S.ui.confirmCourse === open.id ? '確定刪除？章節、單元和學員進度都會一起刪除' : '刪除這門課'}</button></div></form>` : ''}
     <div class="course-layout"><aside class="card">
-      ${open.modules.map(md => { const a = courseAccess(c, open, m, md); return `<div class="mod"><h4>${esc(md.title)}${a.ok ? '' : ' 🔒'}</h4>
-        ${a.ok ? md.lessons.map(l => `<button class="lesson-link" data-act="open-lesson" data-id="${l.id}" aria-current="${l.id === curId}"><span class="dot ${doneSet.has(l.id) ? 'done' : ''}"></span>${esc(l.title)}</button>`).join('') || '<p class="small muted" style="margin:0 8px">尚無單元</p>'
+      ${open.modules.map((md, mi) => { const a = courseAccess(c, open, m, md), lids = md.lessons.map(l => l.id);
+        const head = admin && S.ui.editMod === md.id
+          ? `<form class="f mod-edit" data-form="module-edit" data-id="${md.id}"><input id="me-title" name="title" required maxlength="60" value="${esc(md.title)}" aria-label="章節名稱">
+              <label class="small">入會滿幾天才開放<input id="me-drip" name="drip_days" type="number" min="0" value="${md.drip_days || 0}"></label><div id="form-err"></div>
+              <div class="row"><button class="btn primary sm">儲存</button><button type="button" class="btn ghost sm" data-act="edit-mod" data-id="${md.id}">取消</button>
+              <button type="button" class="btn ghost sm danger" data-act="del-mod" data-id="${md.id}">${S.ui.confirmMod === md.id ? `確定刪除？${md.lessons.length} 個單元會一起刪除` : '刪除章節'}</button></div></form>`
+          : `<div class="mod-h"><h4>${esc(md.title)}${a.ok ? '' : ' 🔒'}${admin && md.drip_days ? ` <span class="chip">第 ${md.drip_days} 天開放</span>` : ''}</h4>
+              ${admin ? `<span class="mini">${upDown('module', open.modules.map(x => x.id), mi, md.title)}<button type="button" class="ib" data-act="edit-mod" data-id="${md.id}" aria-label="編輯章節 ${esc(md.title)}">✎</button></span>` : ''}</div>`;
+        return `<div class="mod">${head}
+        ${a.ok ? md.lessons.map((l, li) => `<div class="lrow"><button class="lesson-link" data-act="open-lesson" data-id="${l.id}" aria-current="${l.id === curId}"><span class="dot ${doneSet.has(l.id) ? 'done' : ''}"></span>${esc(l.title)}</button>${admin && lids.length > 1 ? upDown('lesson', lids, li, l.title) : ''}</div>`).join('') || '<p class="small muted" style="margin:0 8px">尚無單元</p>'
           : `<p class="small muted" style="margin:0 8px">${esc(a.why)}</p>`}</div>`; }).join('') || '<p class="muted small">還沒有章節</p>'}
       ${admin ? `<details class="admin-box"><summary>＋ 新增章節</summary><form class="f" data-form="module" data-course="${open.id}">
         <input id="nm-title" name="title" required placeholder="章節名稱" aria-label="章節名稱"><label>入會滿幾天才開放（0 = 立即）<input id="nm-drip" name="drip_days" type="number" min="0" value="0"></label><button class="btn primary sm">新增</button></form></details>` : ''}
     </aside>
-    <section class="card">${lesson && acc.ok ? `<h2 style="font-size:20px;margin-top:0">${esc(lesson.title)}</h2>${video}<div class="lesson-body">${esc(lesson.body || '')}</div>
-      <div class="row" style="margin-top:18px"><button class="btn ${doneSet.has(lesson.id) ? '' : 'primary'}" data-act="complete" data-id="${lesson.id}">${doneSet.has(lesson.id) ? '✓ 已完成（點擊取消）' : '標記為完成'}</button></div>`
+    <section class="card">${lesson && acc.ok && admin && S.ui.editLesson === lesson.id ? `<h2 style="font-size:18px;margin-top:0">編輯單元</h2>
+      <form class="f" data-form="lesson-edit" data-id="${lesson.id}">
+        <label>單元名稱<input id="le-title" name="title" required maxlength="80" value="${esc(lesson.title)}"></label>
+        <label>章節<select id="le-mod" name="module_id">${open.modules.map(md => `<option value="${md.id}" ${md.id === lesson.module_id ? 'selected' : ''}>${esc(md.title)}</option>`).join('')}</select></label>
+        <label>影片網址（選填）<input id="le-video" name="video_url" type="url" placeholder="https://" value="${esc(lesson.video_url || '')}"></label>
+        <label>內容<textarea id="le-body" name="body" style="min-height:220px">${esc(lesson.body || '')}</textarea></label><div id="form-err"></div>
+        <div class="row"><button class="btn primary">儲存單元</button><button type="button" class="btn ghost" data-act="edit-lesson">取消</button></div></form>`
+      : lesson && acc.ok ? `<h2 style="font-size:20px;margin-top:0">${esc(lesson.title)}</h2>${video}<div class="lesson-body">${esc(lesson.body || '')}</div>
+      <div class="row" style="margin-top:18px"><button class="btn ${doneSet.has(lesson.id) ? '' : 'primary'}" data-act="complete" data-id="${lesson.id}">${doneSet.has(lesson.id) ? '✓ 已完成（點擊取消）' : '標記為完成'}</button>
+        ${admin ? `<span class="spacer"></span><button class="btn ghost sm" data-act="edit-lesson" data-id="${lesson.id}">編輯單元</button><button class="btn ghost sm danger" data-act="del-lesson" data-id="${lesson.id}">${S.ui.confirmLesson === lesson.id ? '確定刪除？' : '刪除單元'}</button>` : ''}</div>`
       : `<div class="empty">${lessonsFlat.length ? '選一個單元開始' : '這門課還沒有單元'}</div>`}
       ${admin && open.modules.length ? `<details class="admin-box" style="margin-top:18px"><summary>＋ 新增單元</summary><form class="f" data-form="lesson" data-cid="${c.id}" data-course="${open.id}">
         <label>章節<select id="nl-mod" name="module_id">${open.modules.map(md => `<option value="${md.id}">${esc(md.title)}</option>`).join('')}</select></label>
@@ -680,6 +735,7 @@ async function classroomView(c, m) {
 /* ---------- 行事曆 ---------- */
 async function calendarView(c, m) {
   const events = await api.listEvents(c.id), admin = isAdminOf(c.id), now = Date.now();
+  S.events = events;
   const upcoming = events.filter(e => new Date(e.starts_at).getTime() + e.duration_min * 60000 >= now);
   const past = events.filter(e => !upcoming.includes(e)).reverse();
   const wd = ['日', '一', '二', '三', '四', '五', '六'];
@@ -688,7 +744,8 @@ async function calendarView(c, m) {
     return `<div class="card ev ${isPast ? 'past' : ''}"><div class="date"><span>${d.getMonth() + 1} 月</span><b>${d.getDate()}</b><span>週${wd[d.getDay()]}</span></div>
       <div style="min-width:0"><h3 style="margin:0;font-size:17px">${esc(e.title)}</h3><div class="meta">${t(d)}–${t(end)} · ${e.going_count} 人參加</div>
       ${e.description ? `<p style="margin:6px 0 0;white-space:pre-wrap">${esc(e.description)}</p>` : ''}
-      ${e.location_url ? `<div class="small" style="margin-top:4px;overflow-wrap:anywhere">連結：<a href="${esc(e.location_url)}" target="_blank" rel="noopener">${esc(e.location_url)}</a></div>` : ''}</div>
+      ${e.location_url && /^https?:\/\//i.test(e.location_url) ? `<div class="small" style="margin-top:4px;overflow-wrap:anywhere">連結：<a href="${esc(e.location_url)}" target="_blank" rel="noopener">${esc(e.location_url)}</a></div>` : ''}
+      ${!isPast ? `<div class="small ev-cal">加到我的行事曆：<a href="${esc(gcalUrl(e))}" target="_blank" rel="noopener">Google 日曆</a> · <button type="button" class="link-btn" data-act="ics" data-id="${e.id}">Apple／Outlook（.ics）</button></div>` : ''}</div>
       <div class="ev-act row">${!isPast ? `<button class="btn ${e.going ? '' : 'primary'} sm" data-act="rsvp" data-id="${e.id}">${e.going ? '✓ 已報名' : '我要參加'}</button>` : ''}
         ${admin ? `<button class="btn ghost sm danger" data-act="del-event" data-id="${e.id}">${S.ui.confirmEv === e.id ? '確定刪除？' : '刪除'}</button>` : ''}</div></div>`; };
   return `<div class="stack"><h2 style="margin:0;font-size:20px">即將舉行</h2>${upcoming.map(e => ev(e, false)).join('') || '<div class="card empty">目前沒有排定的活動</div>'}
@@ -696,8 +753,33 @@ async function calendarView(c, m) {
       <label>活動名稱<input id="ne-title" name="title" required></label>
       <div class="inline"><label>開始時間<input id="ne-start" name="starts_at" type="datetime-local" required></label><label>長度（分鐘）<input id="ne-dur" name="duration_min" type="number" min="15" step="15" value="60"></label></div>
       <label>線上會議連結（選填）<input id="ne-url" name="location_url" type="url" placeholder="https://"></label>
-      <label>說明<textarea id="ne-desc" name="description"></textarea></label><div id="form-err"></div><button class="btn primary">新增活動</button></form></details>` : ''}
+      <label>說明<textarea id="ne-desc" name="description"></textarea></label><div id="form-err"></div>
+      <p class="small muted" style="margin:0">新增後會通知社群所有成員；有報名的人在活動開始前一天內會再收到提醒。</p><button class="btn primary">新增活動</button></form></details>` : ''}
     ${past.length ? `<h2 style="margin:14px 0 0;font-size:20px">過去的活動</h2>${past.map(e => ev(e, true)).join('')}` : ''}</div>`;
+}
+
+// 加到 Google 日曆／下載 .ics（.ics 內含開始前 30 分鐘的手機提醒）
+const icsTime = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+function gcalUrl(e) {
+  const s = new Date(e.starts_at), en = new Date(s.getTime() + e.duration_min * 60000);
+  const details = [e.description || '', e.location_url || ''].filter(Boolean).join('\n\n');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${icsTime(s)}/${icsTime(en)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(e.location_url || '')}`;
+}
+function downloadFile(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function downloadIcs(e) {
+  const s = new Date(e.starts_at), en = new Date(s.getTime() + e.duration_min * 60000);
+  const t = x => String(x || '').replace(/\\/g, '\\\\').replace(/[;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Juchang//Calendar//ZH', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+    `UID:${e.id}@juchang`, `DTSTAMP:${icsTime(new Date())}`, `DTSTART:${icsTime(s)}`, `DTEND:${icsTime(en)}`, `SUMMARY:${t(e.title)}`,
+    `DESCRIPTION:${t([e.description, e.location_url].filter(Boolean).join('\n\n'))}`,
+    ...(e.location_url ? [`LOCATION:${t(e.location_url)}`, `URL:${t(e.location_url)}`] : []),
+    'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', `DESCRIPTION:${t(e.title)}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
+  downloadFile(`${e.title.replace(/[\\/:*?"<>|]/g, '').slice(0, 40) || 'event'}.ics`, lines.join('\r\n'), 'text/calendar;charset=utf-8');
 }
 
 /* ---------- 成員（會員端） ---------- */
@@ -733,8 +815,13 @@ function aboutView(c, m) {
   const cta = m ? (m.role === 'owner' ? '<span class="chip sun">你是這個社群的擁有者</span>' : `<button class="btn" data-act="leave" data-cid="${c.id}">${S.ui.confirmLeave ? '確定退出？' : '退出社群'}</button>`)
     : mm?.status === 'pending' ? '<span class="chip">已送出申請，等待版主審核</span>'
     : mm?.status === 'banned' ? '<p class="banner warn" style="margin:0">你已被這個社群的管理員封鎖，無法加入或查看內容。</p>'
+    : (c.join_questions || []).length ? `<form class="f join-form" data-form="join" data-cid="${c.id}">
+        <h3 style="margin:0;font-size:16px">${c.is_private ? '申請加入' : '加入社群'}前，請回答版主的問題</h3>
+        ${c.join_questions.map((q, i) => `<label>${esc(q)}<textarea id="jq${i}" name="a${i}" required maxlength="500" style="min-height:70px"></textarea></label>`).join('')}
+        <div id="form-err"></div><div><button class="btn primary lg">${c.is_private ? '送出申請' : '免費加入社群'}</button></div></form>`
     : `<button class="btn primary lg" data-act="join" data-cid="${c.id}">${c.is_private ? '申請加入' : '免費加入社群'}</button>`;
-  return `<div class="grid2"><section class="card"><h2 style="margin:0 0 8px;font-size:20px">關於這個社群</h2><p style="white-space:pre-wrap;margin-top:0">${esc(c.description || '版主還沒有寫介紹。')}</p><div class="row" style="margin-top:18px">${cta}</div></section>
+  const joinNote = !m && !mm ? `<p class="small muted" style="margin:10px 0 0">加入後，社群的管理員看得到你的名稱${(c.join_questions || []).length ? '和回答' : ''}，社群擁有者可以匯出成員的 Email。</p>` : '';
+  return `<div class="grid2"><section class="card"><h2 style="margin:0 0 8px;font-size:20px">關於這個社群</h2><p style="white-space:pre-wrap;margin-top:0">${esc(c.description || '版主還沒有寫介紹。')}</p><div class="row" style="margin-top:18px">${cta}</div>${joinNote}</section>
     <aside class="card"><dl class="kv"><dt>成員</dt><dd>${c.member_count} 位</dd><dt>主題</dt><dd>${esc(c.category || '其他')}</dd><dt>類型</dt><dd>${c.is_private ? '私密（需審核）' : '公開'}</dd><dt>建立</dt><dd>${fmtDate(c.created_at)}</dd></dl></aside></div>`;
 }
 
@@ -743,7 +830,7 @@ function aboutView(c, m) {
    ===================================================================== */
 async function adminView(c, m) {
   const sec = S.ui.adminSec || 'overview';
-  const [members, reports] = await Promise.all([api.listMembers(c.id), api.listReports(c.id)]);
+  const [members, reports, answers] = await Promise.all([api.listMembers(c.id), api.listReports(c.id), api.listAnswers(c.id)]);
   const pending = members.filter(x => x.status === 'pending').length;
   const openReports = groupReports(reports.filter(r => r.status === 'open')).length;
   const badge = { members: pending, reports: openReports };
@@ -753,7 +840,9 @@ async function adminView(c, m) {
   if (sec === 'overview') body = await adminOverview(c, members);
   else if (sec === 'settings') body = adminSettings(c);
   else if (sec === 'categories') body = await adminCategories(c);
-  else if (sec === 'members') body = adminMembers(c, members);
+  else if (sec === 'onboard') body = adminOnboard(c);
+  else if (sec === 'members') body = adminMembers(c, members, answers);
+  else if (sec === 'progress') body = await adminProgress(c, members);
   else if (sec === 'reports') body = adminReports(c, reports);
   else if (sec === 'invite') body = adminInvite(c);
   else if (sec === 'danger') body = adminDanger(c);
@@ -808,7 +897,11 @@ async function adminCategories(c) {
     </div>`;
 }
 
-function adminMembers(c, members) {
+function answersHtml(answers, uid) {
+  const a = answers.find(x => x.user_id === uid)?.answers || [];
+  return a.length ? `<dl class="answers">${a.map(x => `<dt>${esc(x.q)}</dt><dd>${esc(x.a)}</dd>`).join('')}</dl>` : '';
+}
+function adminMembers(c, members, answers = []) {
   const q = (S.ui.mq || '').trim();
   const pending = members.filter(x => x.status === 'pending');
   const banned = members.filter(x => x.status === 'banned');
@@ -823,16 +916,79 @@ function adminMembers(c, members) {
     ? btn(x, status, `確定${label}？`, 'danger') : btn(x, status, label, 'ghost danger', true);
   return `<h2>成員管理</h2><p class="lead">審核申請、指派管理員、移除或封鎖成員。被封鎖的人不能再加入，也看不到社群內容。${owner ? '' : '只有擁有者可以指派管理員。'}</p>
     ${pending.length ? `<div class="card" style="margin-bottom:14px;border-color:var(--coral)"><h3 style="margin:0 0 4px;font-size:16px">待審核（${pending.length}）</h3>
-      ${pending.map(x => `<div class="mrow">${av(x)}<div class="who"><b>${esc(x.name)}</b><div class="small muted">${ago(x.joined_at)}申請</div></div>
-        ${btn(x, 'active', '核准', 'primary')}${btn(x, 'removed', '拒絕', '')}${confirmBtn(x, 'banned', '封鎖')}</div>`).join('')}</div>` : ''}
+      ${pending.map(x => `<div class="pend"><div class="mrow">${av(x)}<div class="who"><b>${esc(x.name)}</b><div class="small muted">${ago(x.joined_at)}申請</div></div>
+        ${btn(x, 'active', '核准', 'primary')}${btn(x, 'removed', '拒絕', '')}${confirmBtn(x, 'banned', '封鎖')}</div>${answersHtml(answers, x.user_id)}</div>`).join('')}</div>` : ''}
     <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0;font-size:16px">成員（${members.filter(x => x.status === 'active').length}）</h3>
-      <input class="search" id="mq" type="search" placeholder="搜尋成員" value="${esc(q)}" aria-label="搜尋成員"></div>
-      ${active.map(x => `<div class="mrow">${av(x)}<div class="who"><b>${esc(x.name)}</b> ${role(x.role)}<div class="small muted">等級 ${levelFor(x.points)} · ${x.points} 分 · ${fmtDate(x.joined_at)} 加入</div></div>
+      <div class="row" style="gap:8px;flex:1 1 260px;justify-content:flex-end;flex-wrap:nowrap"><input class="search" id="mq" style="min-width:0;flex:0 1 300px" type="search" placeholder="搜尋成員" value="${esc(q)}" aria-label="搜尋成員">
+      ${owner ? `<button class="btn sm" data-act="export" data-cid="${c.id}" style="flex:none">匯出名單（CSV）</button>` : ''}</div></div>
+      ${active.map(x => `<div class="mrow">${av(x)}<div class="who"><b>${esc(x.name)}</b> ${role(x.role)}<div class="small muted">等級 ${levelFor(x.points)} · ${x.points} 分 · ${fmtDate(x.joined_at)} 加入</div>
+        ${answersHtml(answers, x.user_id) ? `<details class="ans-d"><summary class="small">入會回答</summary>${answersHtml(answers, x.user_id)}</details>` : ''}</div>
         ${owner && x.role !== 'owner' ? `<button class="btn sm" data-act="role" data-uid="${esc(x.user_id)}" data-cid="${c.id}" data-role="${x.role === 'admin' ? 'member' : 'admin'}">${x.role === 'admin' ? '取消管理員' : '設為管理員'}</button>` : ''}
         ${canManage(x) ? confirmBtn(x, 'removed', '移除') + confirmBtn(x, 'banned', '封鎖') : ''}</div>`).join('') || '<p class="muted small">沒有符合的成員</p>'}</div>
     ${banned.length ? `<div class="card" style="margin-top:14px"><h3 style="margin:0 0 4px;font-size:16px">已封鎖（${banned.length}）</h3>
       <p class="small muted" style="margin:0 0 6px">解除封鎖後，對方可以重新申請加入。</p>
       ${banned.map(x => `<div class="mrow">${av(x)}<div class="who"><b>${esc(x.name)}</b></div>${btn(x, 'removed', '解除封鎖', '')}</div>`).join('')}</div>` : ''}`;
+}
+
+function adminOnboard(c) {
+  const qs = c.join_questions || [];
+  const ph = ['例如：你為什麼想加入這個社群？', '例如：你現在最想解決的問題是什麼？', '例如：你是從哪裡知道這個社群的？'];
+  return `<h2>入會設定</h2><p class="lead">新成員加入時要回答的問題，以及加入後自動收到的歡迎私訊。</p>
+    <form class="card f" data-form="onboard" data-cid="${c.id}">
+      <h3 style="margin:0;font-size:16px">入會問題 <span class="hint">最多 3 題，留空就不問</span></h3>
+      <p class="small muted" style="margin:0">${c.is_private ? '這是私密社群：回答會跟著申請一起出現在「成員管理」，你看完再決定要不要核准。' : '這是公開社群：回答完就直接加入，回答會留在「成員管理」給你參考。'}</p>
+      ${[0, 1, 2].map(i => `<label>問題 ${i + 1}<input id="ob-q${i}" name="q${i}" maxlength="200" value="${esc(qs[i] || '')}" placeholder="${ph[i]}"></label>`).join('')}
+      <h3 style="margin:12px 0 0;font-size:16px">歡迎私訊</h3>
+      <p class="small muted" style="margin:0">新成員加入後（私密社群是核准後）會自動收到這則私訊，寄件人是社群擁有者。寫 <code>{名字}</code> 會換成對方的名字，<code>{社群}</code> 會換成社群名稱。留空就不發送。</p>
+      <textarea id="ob-welcome" name="welcome_message" maxlength="1000" style="min-height:160px" aria-label="歡迎私訊" placeholder="嗨 {名字}，歡迎加入{社群}！建議你先到「課程」看第一堂……">${esc(c.welcome_message || '')}</textarea>
+      <div id="form-err"></div><div class="row"><button class="btn primary">儲存入會設定</button></div>
+    </form>`;
+}
+
+async function adminProgress(c, members) {
+  const [courses, prog] = await Promise.all([api.listCourses(c.id), api.courseProgress(c.id)]);
+  if (!courses.length) return `<h2>課程進度</h2><div class="card empty">還沒有課程，先到「課程」分頁新增第一門課。</div>`;
+  const cur = courses.find(k => k.id === S.ui.pcourse) || courses[0], total = lessonCount(cur), names = levelNames(c);
+  const rows = members.filter(x => x.status === 'active').map(x => {
+    const p = prog.find(r => r.user_id === x.user_id && r.course_id === cur.id), done = p?.done || 0;
+    return { ...x, done, pct: total ? Math.min(100, Math.round(done / total * 100)) : 0, last: p?.last_at || null, locked: x.role === 'member' && levelFor(x.points) < cur.unlock_level };
+  }).sort((a, b) => b.pct - a.pct || (b.last || '').localeCompare(a.last || '') || b.points - a.points);
+  const started = rows.filter(r => r.done > 0).length, finished = rows.filter(r => total && r.done >= total).length;
+  const avg = rows.length ? Math.round(rows.reduce((n, r) => n + r.pct, 0) / rows.length) : 0;
+  const locked = rows.filter(r => r.locked).length;
+  return `<h2>課程進度</h2><p class="lead">每位成員在每門課完成了幾個單元。找出卡住的人，私訊鼓勵一下。</p>
+    <div class="filters" role="group" aria-label="選擇課程">${courses.map(k => `<button data-act="pcourse" data-id="${k.id}" aria-pressed="${k.id === cur.id}">${esc(k.title)}${k.published ? '' : '（草稿）'}</button>`).join('')}</div>
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="k">平均完成度</div><div class="v">${avg}%</div><div class="d">這門課共 ${total} 個單元</div></div>
+      <div class="tile"><div class="k">已完課</div><div class="v">${finished}</div><div class="d">所有單元都完成</div></div>
+      <div class="tile"><div class="k">上課中</div><div class="v">${started - finished}</div><div class="d">完成至少 1 個單元</div></div>
+      <div class="tile"><div class="k">還沒開始</div><div class="v">${rows.length - started}</div><div class="d">${locked ? `其中 ${locked} 位等級還沒解鎖` : `共 ${rows.length} 位成員`}</div></div>
+    </div>
+    <div class="card" style="margin-top:14px;padding:0"><div class="scroll"><table class="t prog-t" aria-label="${esc(cur.title)} 學員進度">
+      <thead><tr><th>成員</th><th>進度</th><th class="n">完成</th><th>最近完成</th><th><span class="sr-only">動作</span></th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td><button type="button" class="who-btn" data-act="profile" data-uid="${esc(r.user_id)}">${avatar({ id: r.user_id, name: r.name, avatar: r.avatar }, r.points, 'sm')}<span><b>${esc(r.name)}</b></span></button></td>
+        <td style="min-width:130px">${r.locked && !r.done ? `<span class="chip">等級 ${cur.unlock_level}「${esc(names[cur.unlock_level - 1])}」解鎖</span>` : `<div class="prog" role="img" aria-label="完成 ${r.pct}%"><span style="width:${r.pct}%"></span></div>`}</td>
+        <td class="n">${r.done}/${total}</td><td class="small muted">${r.last ? ago(r.last) : '—'}</td>
+        <td>${r.user_id !== S.user.id ? `<a class="btn ghost sm" href="#dm--${esc(r.user_id)}">私訊</a>` : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">還沒有成員</td></tr>'}
+      </tbody></table></div></div>`;
+}
+
+async function exportMembers(cid) {
+  const c = S.communities.find(x => x.id === cid), names = levelNames(c);
+  const [rows, courses, prog] = await Promise.all([api.exportMembers(cid), api.listCourses(cid), api.courseProgress(cid)]);
+  const live = courses.filter(k => k.published), total = live.reduce((n, k) => n + lessonCount(k), 0), liveIds = new Set(live.map(k => k.id));
+  const doneBy = {}; prog.filter(p => liveIds.has(p.course_id)).forEach(p => { doneBy[p.user_id] = (doneBy[p.user_id] || 0) + p.done; });
+  const roleL = { owner: '擁有者', admin: '管理員', member: '成員' }, stL = { active: '已加入', pending: '待審核' };
+  const when = iso => new Date(iso).toLocaleString('zh-TW', { hour12: false });
+  const head = ['名稱', 'Email', '身分', '狀態', '等級', '分數', '加入時間', `完成單元（共 ${total}）`, '入會回答'];
+  const lines = rows.map(r => [r.display_name, r.email || '', roleL[r.role] || r.role, stL[r.status] || r.status,
+    r.status === 'active' ? `${levelFor(r.points)} ${names[levelFor(r.points) - 1]}` : '', r.points, when(r.joined_at),
+    r.status === 'active' ? doneBy[r.user_id] || 0 : '', (r.answers || []).map(a => `${a.q}：${a.a}`).join(' ／ ')]);
+  // 防止 Excel 把開頭是 = + - @ 的內容當成公式執行
+  const cell = v => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return /[",\n\r]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+  const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  downloadFile(`${c.slug}-members-${stamp}.csv`, '\ufeff' + [head, ...lines].map(r => r.map(cell).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+  toast(`已匯出 ${rows.length} 位成員`);
 }
 
 // 同一則內容的多筆檢舉合併成一張卡
@@ -924,9 +1080,12 @@ function notifText(n) {
   return ({
     comment: `${a} 在你的貼文${t}留言`, reply: `${a} 回覆了你的留言`, mention: `${a} 在${t || '一則內容'}提到你`,
     like_post: `${a} 對你的貼文${t}按讚`, like_comment: `${a} 對你的留言按讚`,
-    approved: `你已經加入「${esc(n.community_name || '')}」，歡迎！`, announcement: `<b>${esc(n.community_name || '')}</b> 發布了公告${t}`
+    approved: `你已經加入「${esc(n.community_name || '')}」，歡迎！`, announcement: `<b>${esc(n.community_name || '')}</b> 發布了公告${t}`,
+    event_new: `<b>${esc(n.community_name || '')}</b> 新增活動「${esc(n.event_title || '')}」${n.event_starts_at ? `，${esc(fmtWhen(n.event_starts_at))}` : ''}`,
+    event_soon: `提醒：你報名的「${esc(n.event_title || '')}」${n.event_starts_at ? `在 ${esc(fmtWhen(n.event_starts_at))} 開始` : '快開始了'}`
   })[n.type] || '新通知';
 }
+const NT_ICON = { approved: '🎉', announcement: '📣', event_new: '📅', event_soon: '⏰' };
 async function renderNotif() {
   const root = document.getElementById('notif-root');
   if (!S.ui.notifOpen || !S.user) { root.innerHTML = ''; return; }
@@ -935,8 +1094,8 @@ async function renderNotif() {
   root.innerHTML = `<div class="notif" role="dialog" aria-label="通知">
     <div class="row" style="justify-content:space-between;padding:12px 14px 8px"><h2 style="margin:0;font-size:17px">通知</h2>
       ${unread ? '<button class="btn ghost sm" data-act="notif-all-read">全部標為已讀</button>' : ''}</div>
-    <div class="notif-list">${list.length ? list.map(n => `<button type="button" class="nt${n.read_at ? '' : ' unread'}" data-act="open-notif" data-id="${esc(n.id)}" data-slug="${esc(n.community_slug || '')}" data-post="${esc(n.post_id || '')}">
-      ${n.type === 'approved' || n.type === 'announcement' ? `<span class="av sm nt-icon" aria-hidden="true">${n.type === 'approved' ? '🎉' : '📣'}</span>` : avatar({ id: n.actor_id, name: n.actor_name, avatar: n.actor_avatar }, null, 'sm')}
+    <div class="notif-list">${list.length ? list.map(n => `<button type="button" class="nt${n.read_at ? '' : ' unread'}" data-act="open-notif" data-id="${esc(n.id)}" data-slug="${esc(n.community_slug || '')}" data-post="${esc(n.post_id || '')}" data-tab="${n.event_id ? 'calendar' : 'feed'}">
+      ${NT_ICON[n.type] ? `<span class="av sm nt-icon" aria-hidden="true">${NT_ICON[n.type]}</span>` : avatar({ id: n.actor_id, name: n.actor_name, avatar: n.actor_avatar }, null, 'sm')}
       <span class="nt-main"><span>${notifText(n)}</span>${n.snippet && ['comment', 'reply', 'mention'].includes(n.type) ? `<span class="nt-snip">${esc(n.snippet)}</span>` : ''}
         <span class="small muted">${esc(n.community_name || '')} · ${ago(n.created_at)}</span></span></button>`).join('')
       : '<p class="small muted" style="padding:20px 14px;margin:0;text-align:center">目前沒有通知</p>'}</div></div>`;
@@ -1009,7 +1168,7 @@ document.addEventListener('click', e => {
       S.ui.notifOpen = false; renderNotif();
       api.markNotificationsRead([id]).then(refreshBadges).catch(() => {});
       if (!el.dataset.slug) return;
-      const target = `#c--${el.dataset.slug}--feed`;
+      const target = `#c--${el.dataset.slug}--${el.dataset.tab || 'feed'}`;
       if (location.hash === target) { if (el.dataset.post) { S.ui.post = el.dataset.post; renderModal(); } return; }
       S.pendingPost = el.dataset.post || null; location.hash = target; return;
     }
@@ -1043,12 +1202,34 @@ document.addEventListener('click', e => {
     case 'reply': S.ui.replyTo = S.ui.replyTo === id ? null : id; return renderModal().then(() => document.getElementById('reply-body')?.focus());
     case 'pin': return act(() => api.togglePin(id));
     case 'del-post': if (S.ui.confirmDel !== id) { S.ui.confirmDel = id; return renderModal(); } S.ui.post = null; S.ui.confirmDel = null; return act(() => api.deletePost(id), '已刪除貼文');
-    case 'open-course': S.ui.course = id; S.ui.lesson = null; return render();
-    case 'close-course': S.ui.course = null; return render();
-    case 'open-lesson': S.ui.lesson = id; return render();
+    case 'open-course': S.ui.course = id; S.ui.lesson = null; S.ui.editCourse = false; S.ui.editMod = null; S.ui.editLesson = null; return render();
+    case 'close-course': S.ui.course = null; S.ui.editCourse = false; return render();
+    case 'open-lesson': S.ui.lesson = id; S.ui.editLesson = null; return render();
+    case 'edit-course': S.ui.editCourse = !S.ui.editCourse; S.ui.confirmCourse = null; return render().then(() => S.ui.editCourse && document.getElementById('ck-title')?.focus());
+    case 'del-course': if (S.ui.confirmCourse !== id) { S.ui.confirmCourse = id; return render(); }
+      S.ui.confirmCourse = null; S.ui.course = null; S.ui.editCourse = false; return act(() => api.deleteCourse(id), '已刪除課程');
+    case 'edit-mod': S.ui.editMod = S.ui.editMod === id ? null : id; S.ui.confirmMod = null; return render().then(() => S.ui.editMod && document.getElementById('me-title')?.focus());
+    case 'del-mod': if (S.ui.confirmMod !== id) { S.ui.confirmMod = id; return render(); }
+      S.ui.confirmMod = null; S.ui.editMod = null; S.ui.lesson = null; return act(() => api.deleteModule(id), '已刪除章節');
+    case 'edit-lesson': S.ui.editLesson = id || null; S.ui.confirmLesson = null; return render().then(() => S.ui.editLesson && document.getElementById('le-title')?.focus());
+    case 'del-lesson': if (S.ui.confirmLesson !== id) { S.ui.confirmLesson = id; return render(); }
+      S.ui.confirmLesson = null; S.ui.lesson = null; return act(() => api.deleteLesson(id), '已刪除單元');
+    case 'move': {
+      const ids = el.dataset.ids.split(','), i = Number(el.dataset.i), j = i + Number(el.dataset.d);
+      if (j < 0 || j >= ids.length) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      if (el.dataset.kind === 'course') S.ui.sortOpen = true;
+      return act(() => api.reorder(el.dataset.kind, ids)).then(() => {
+        const b = document.querySelector(`[data-act="move"][data-kind="${el.dataset.kind}"][data-i="${j}"][data-d="${el.dataset.d}"]`);
+        (b && !b.disabled ? b : document.querySelector(`[data-act="move"][data-kind="${el.dataset.kind}"][data-i="${j}"]:not([disabled])`))?.focus();
+      });
+    }
+    case 'pcourse': S.ui.pcourse = id; return render();
+    case 'export': return exportMembers(el.dataset.cid).catch(err => toast(err.message));
+    case 'ics': { const ev = (S.events || []).find(x => x.id === id); if (ev) { downloadIcs(ev); toast('已下載，用手機或電腦打開就能加到行事曆'); } return; }
     case 'publish': return act(() => api.updateCourse(id, { published: el.dataset.v === 'true' }), el.dataset.v === 'true' ? '課程已發布' : '已改回草稿');
     case 'complete': return act(() => api.toggleComplete(id));
-    case 'rsvp': return act(() => api.toggleRsvp(id));
+    case 'rsvp': { const going = el.textContent.includes('已報名'); return act(() => api.toggleRsvp(id), going ? '已取消報名' : '報名成功！活動開始前一天內會通知你'); }
     case 'del-event': if (S.ui.confirmEv !== id) { S.ui.confirmEv = id; return render(); } S.ui.confirmEv = null; return act(() => api.deleteEvent(id), '已刪除活動');
     case 'range': S.ui.range = Number(el.dataset.d); return render();
     case 'preview': S.preview = !S.preview; S.ui.course = null; S.ui.adminSec = null;
@@ -1167,6 +1348,20 @@ document.addEventListener('submit', async e => {
     if (kind === 'course') { const k = await api.createCourse({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), unlock_level: Number(d.unlock_level) }); S.ui.course = k.id; toast('已新增課程'); }
     if (kind === 'module') { await api.createModule({ course_id: f.dataset.course, title: d.title.trim(), drip_days: Number(d.drip_days) || 0 }); toast('已新增章節'); }
     if (kind === 'lesson') { const l = await api.createLesson({ community_id: f.dataset.cid, course_id: f.dataset.course, module_id: d.module_id, title: d.title.trim(), video_url: d.video_url.trim(), body: d.body }); S.ui.lesson = l?.id || null; toast('已新增單元'); }
+    if (kind === 'course-edit') { await api.updateCourse(f.dataset.id, { title: d.title.trim(), description: d.description.trim(), unlock_level: Number(d.unlock_level) }); S.ui.editCourse = false; toast('課程已更新'); }
+    if (kind === 'module-edit') { await api.updateModule(f.dataset.id, { title: d.title.trim(), drip_days: Math.max(0, Number(d.drip_days) || 0) }); S.ui.editMod = null; toast('章節已更新'); }
+    if (kind === 'lesson-edit') { await api.updateLesson(f.dataset.id, { title: d.title.trim(), module_id: d.module_id, video_url: d.video_url.trim(), body: d.body }); S.ui.editLesson = null; toast('單元已更新'); }
+    if (kind === 'onboard') {
+      const qs = [d.q0, d.q1, d.q2].map(x => (x || '').trim()).filter(Boolean);
+      await api.updateCommunity(f.dataset.cid, { join_questions: qs, welcome_message: d.welcome_message.trim() || null });
+      toast('入會設定已儲存');
+    }
+    if (kind === 'join') {
+      const c = S.communities.find(x => x.id === f.dataset.cid);
+      const st = await api.join(c.id, (c.join_questions || []).map((_, i) => (d['a' + i] || '').trim()));
+      if (st === 'active') { location.hash = `c--${c.slug}--feed`; toast('歡迎加入！'); return; }
+      toast('已送出申請，等待版主審核');
+    }
     if (kind === 'event') { await api.createEvent({ community_id: f.dataset.cid, title: d.title.trim(), description: d.description.trim(), starts_at: new Date(d.starts_at).toISOString(), duration_min: Number(d.duration_min) || 60, location_url: d.location_url.trim() }); toast('已新增活動'); }
     await render();
   } catch (err) {

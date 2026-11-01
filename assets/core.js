@@ -105,7 +105,7 @@
      A. 示範模式（瀏覽器 localStorage）
      ===================================================================== */
   function makeDemoApi() {
-    const KEY = 'juchang-demo-v4';
+    const KEY = 'juchang-demo-v5';
     let db = load();
     function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {} return seed(); }
     function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
@@ -155,7 +155,8 @@
         notifications: seedNotifications(x, me, t),
         events: x.events.map(e => ({ id: e.id, community_id: e.community_id, title: e.title, description: e.description, starts_at: at(e.dayOffset, e.hh, e.mm),
           duration_min: e.duration_min, location_url: e.location_url, created_by: me(e.created_by), created_at: t(e.created_hoursAgo) })),
-        rsvps: x.rsvps.map(r => ({ event_id: r.event_id, user_id: me(r.user_id) }))
+        rsvps: x.rsvps.map(r => ({ event_id: r.event_id, user_id: me(r.user_id) })),
+        answers: (x.answers || []).map(a => ({ community_id: a.community_id, user_id: me(a.user_id), answers: a.answers, created_at: t(a.hoursAgo) }))
       };
     }
     const S = () => db.session;
@@ -175,6 +176,14 @@
       if (!user || user === actor || mem(cid, user)?.status !== 'active') return;
       db.notifications.push({ id: newId(), user_id: user, actor_id: actor, community_id: cid, type, post_id: post || null, comment_id: comment || null, created_at: nowIso(), read_at: null });
     }
+    // 成員加入或審核通過時，用擁有者的名義送出歡迎私訊
+    function welcome(cid, uid) {
+      const c = comm(cid);
+      if (!c || !(c.welcome_message || '').trim() || c.owner_id === uid) return;
+      const body = c.welcome_message.split('{名字}').join(user(uid).name).split('{社群}').join(c.name).slice(0, 2000);
+      db.messages.push({ id: newId(), sender_id: c.owner_id, recipient_id: uid, body, created_at: nowIso(), read_at: null });
+    }
+    if (!db.answers) db.answers = [];
     const sharesCommunity = other => db.memberships.some(a => a.user_id === S() && a.status === 'active' &&
       db.memberships.some(b => b.user_id === other && b.status === 'active' && b.community_id === a.community_id));
     const memberCount = cid => db.memberships.filter(m => m.community_id === cid && m.status === 'active').length;
@@ -226,7 +235,7 @@
         if (!/^[a-z0-9][a-z0-9-]{2,40}$/.test(d.slug)) throw new Error('網址代稱只能用小寫英文、數字和「-」，長度 3–41 字');
         if (db.communities.some(c => c.slug === d.slug)) throw new Error('這個網址代稱已經有人用了，換一個試試');
         const c = { id: newId(), category: '其他', theme_color: '#FFC933', ...d, owner_id: S(), status: 'active', featured: false,
-          level_names: [...DEFAULT_LEVEL_NAMES], price_monthly: 0, created_at: nowIso() };
+          level_names: [...DEFAULT_LEVEL_NAMES], price_monthly: 0, join_questions: [], welcome_message: '', created_at: nowIso() };
         db.communities.push(c);
         db.memberships.push({ community_id: c.id, user_id: S(), role: 'owner', status: 'active', points: 0, joined_at: nowIso() });
         ['公告', '一般討論', '成果分享', '提問'].forEach((n, i) => db.categories.push({ id: newId(), community_id: c.id, name: n, sort: i, admin_only: i === 0 }));
@@ -234,25 +243,38 @@
       },
       async updateCommunity(cid, patch) {
         need(isAdmin(cid));
-        const allowed = ['name', 'tagline', 'description', 'is_private', 'category', 'theme_color', 'level_names'];
+        const allowed = ['name', 'tagline', 'description', 'is_private', 'category', 'theme_color', 'level_names', 'join_questions', 'welcome_message'];
+        if (patch.join_questions) {
+          need(patch.join_questions.length <= 3, '入會問題最多 3 題');
+          need(patch.join_questions.every(q => q.trim() && q.length <= 200), '每個問題請在 1–200 字之間');
+        }
+        need((patch.welcome_message || '').length <= 1000, '歡迎訊息請在 1000 字以內');
         Object.keys(patch).forEach(k => { if (allowed.includes(k)) comm(cid)[k] = patch[k]; });
         save();
       },
       async deleteCommunity(cid) {
         need(isOwner(cid), '只有擁有者可以刪除社群');
         db.communities = db.communities.filter(c => c.id !== cid);
-        for (const k of ['memberships', 'categories', 'posts', 'comments', 'likes', 'point_events', 'courses', 'lessons', 'events'])
+        for (const k of ['memberships', 'categories', 'posts', 'comments', 'likes', 'point_events', 'courses', 'lessons', 'events', 'answers'])
           db[k] = db[k].filter(r => r.community_id !== cid);
         save();
       },
-      async join(cid) {
+      async join(cid, answers) {
         need(S(), '請先登入');
         if (mem(cid)?.status === 'banned') throw new Error('你已被這個社群的管理員封鎖，無法加入');
         if (mem(cid)) return mem(cid).status;
+        const qs = comm(cid).join_questions || [];
+        qs.forEach((q, i) => {
+          need((answers?.[i] || '').trim(), '請回答所有入會問題');
+          need(answers[i].length <= 500, '每題回答請在 500 字以內');
+        });
         const status = comm(cid).is_private ? 'pending' : 'active';
         db.memberships.push({ community_id: cid, user_id: S(), role: 'member', status, points: 0, joined_at: nowIso() });
+        if (qs.length) db.answers.push({ community_id: cid, user_id: S(), answers: qs.map((q, i) => ({ q, a: answers[i].trim() })), created_at: nowIso() });
+        if (status === 'active') welcome(cid, S());
         save(); return status;
       },
+      async listAnswers(cid) { return isAdmin(cid) ? db.answers.filter(a => a.community_id === cid) : []; },
       async leave(cid) { need(mem(cid)?.role !== 'owner', '擁有者不能退出自己的社群'); need(mem(cid)?.status !== 'banned'); db.memberships = db.memberships.filter(m => !(m.community_id === cid && m.user_id === S())); save(); },
 
       /* 分類 */
@@ -390,12 +412,12 @@
         const m = mem(cid, uid); need(m, '找不到這位成員');
         need(m.role !== 'owner', '不能變更擁有者');
         need(m.role !== 'admin' || isOwner(cid), '只有擁有者可以移除管理員');
-        if (status === 'removed') db.memberships = db.memberships.filter(x => x !== m);
+        if (status === 'removed') { db.memberships = db.memberships.filter(x => x !== m); db.answers = db.answers.filter(a => !(a.community_id === cid && a.user_id === uid)); }
         else {
           const approved = m.status === 'pending' && status === 'active';
           if (approved) m.joined_at = nowIso();
           m.status = status;
-          if (approved) db.notifications.push({ id: newId(), user_id: uid, actor_id: S(), community_id: cid, type: 'approved', post_id: null, comment_id: null, created_at: nowIso(), read_at: null });
+          if (approved) { db.notifications.push({ id: newId(), user_id: uid, actor_id: S(), community_id: cid, type: 'approved', post_id: null, comment_id: null, created_at: nowIso(), read_at: null }); welcome(cid, uid); }
         }
         save();
       },
@@ -442,7 +464,62 @@
       async createCourse(d) { need(isAdmin(d.community_id)); const c = { id: newId(), published: true, sort: db.courses.length, created_at: nowIso(), ...d }; db.courses.push(c); save(); return c; },
       async updateCourse(id, patch) { const c = db.courses.find(x => x.id === id); need(isAdmin(c.community_id)); Object.assign(c, patch); save(); },
       async createModule(d) { const c = db.courses.find(x => x.id === d.course_id); need(isAdmin(c.community_id)); db.modules.push({ id: newId(), sort: db.modules.length, ...d }); save(); },
-      async createLesson(d) { need(isAdmin(d.community_id)); const l = { id: newId(), sort: db.lessons.length, ...d }; db.lessons.push(l); save(); return l; },
+      async createLesson(d) {
+        need(isAdmin(d.community_id)); need(!d.video_url || /^https?:\/\//i.test(d.video_url), '影片網址要以 https:// 開頭');
+        const l = { id: newId(), sort: db.lessons.length, ...d }; db.lessons.push(l); save(); return l;
+      },
+      async deleteCourse(id) {
+        const c = db.courses.find(x => x.id === id); need(c && isAdmin(c.community_id));
+        const mids = db.modules.filter(m => m.course_id === id).map(m => m.id), lids = db.lessons.filter(l => l.course_id === id).map(l => l.id);
+        db.courses = db.courses.filter(x => x.id !== id); db.modules = db.modules.filter(m => !mids.includes(m.id));
+        db.lessons = db.lessons.filter(l => !lids.includes(l.id)); db.progress = db.progress.filter(p => !lids.includes(p.lesson_id)); save();
+      },
+      async updateModule(id, patch) {
+        const m = db.modules.find(x => x.id === id), c = m && db.courses.find(x => x.id === m.course_id); need(c && isAdmin(c.community_id));
+        ['title', 'drip_days'].forEach(k => { if (k in patch) m[k] = patch[k]; }); save();
+      },
+      async deleteModule(id) {
+        const m = db.modules.find(x => x.id === id), c = m && db.courses.find(x => x.id === m.course_id); need(c && isAdmin(c.community_id));
+        const lids = db.lessons.filter(l => l.module_id === id).map(l => l.id);
+        db.modules = db.modules.filter(x => x.id !== id); db.lessons = db.lessons.filter(l => l.module_id !== id); db.progress = db.progress.filter(p => !lids.includes(p.lesson_id)); save();
+      },
+      async updateLesson(id, patch) {
+        const l = db.lessons.find(x => x.id === id); need(l && isAdmin(l.community_id));
+        if (patch.module_id) { const md = db.modules.find(x => x.id === patch.module_id); need(md && md.course_id === l.course_id, '單元只能放在同一門課的章節裡'); }
+        need(!patch.video_url || /^https?:\/\//i.test(patch.video_url), '影片網址要以 https:// 開頭');
+        ['title', 'video_url', 'body', 'module_id'].forEach(k => { if (k in patch) l[k] = patch[k]; }); save();
+      },
+      async deleteLesson(id) {
+        const l = db.lessons.find(x => x.id === id); need(l && isAdmin(l.community_id));
+        db.lessons = db.lessons.filter(x => x.id !== id); db.progress = db.progress.filter(p => p.lesson_id !== id); save();
+      },
+      async reorder(kind, ids) {
+        const table = { course: db.courses, module: db.modules, lesson: db.lessons }[kind], rows = ids.map(i => table.find(x => x.id === i));
+        need(rows.every(Boolean), '只能排序同一層的項目');
+        const parent = r => kind === 'course' ? r.community_id : kind === 'module' ? r.course_id : r.module_id;
+        need(new Set(rows.map(parent)).size === 1, '只能排序同一層的項目');
+        const cid = kind === 'module' ? db.courses.find(c => c.id === rows[0].course_id).community_id : rows[0].community_id;
+        need(isAdmin(cid), '只有管理員可以調整課程順序');
+        rows.forEach((r, i) => r.sort = i + 1); save();
+      },
+      async courseProgress(cid) {
+        need(isAdmin(cid), '只有管理員可以查看學員進度');
+        const out = new Map();
+        for (const p of db.progress) {
+          const l = db.lessons.find(x => x.id === p.lesson_id);
+          if (!l || l.community_id !== cid || mem(cid, p.user_id)?.status !== 'active') continue;
+          const k = p.user_id + '|' + l.course_id, r = out.get(k) || { user_id: p.user_id, course_id: l.course_id, done: 0, last_at: p.completed_at };
+          r.done++; if (p.completed_at > r.last_at) r.last_at = p.completed_at; out.set(k, r);
+        }
+        return [...out.values()];
+      },
+      async exportMembers(cid) {
+        need(isOwner(cid) && isMember(cid), '只有擁有者可以匯出成員名單');
+        return db.memberships.filter(m => m.community_id === cid && ['active', 'pending'].includes(m.status))
+          .sort((a, b) => a.status.localeCompare(b.status) || a.joined_at.localeCompare(b.joined_at))
+          .map(m => ({ user_id: m.user_id, display_name: user(m.user_id).name, email: user(m.user_id).email || '', role: m.role, status: m.status, points: m.points,
+            joined_at: m.joined_at, answers: db.answers.find(a => a.community_id === cid && a.user_id === m.user_id)?.answers || [] }));
+      },
 
       /* 行事曆 */
       async listEvents(cid) {
@@ -451,7 +528,13 @@
           ...e, going_count: db.rsvps.filter(r => r.event_id === e.id).length, going: db.rsvps.some(r => r.event_id === e.id && r.user_id === S())
         }));
       },
-      async createEvent(d) { need(isAdmin(d.community_id)); db.events.push({ id: newId(), created_by: S(), created_at: nowIso(), ...d }); save(); },
+      async createEvent(d) {
+        need(isAdmin(d.community_id));
+        const e = { id: newId(), created_by: S(), created_at: nowIso(), ...d }; db.events.push(e);
+        db.memberships.filter(m => m.community_id === d.community_id && m.status === 'active' && m.user_id !== S()).forEach(m =>
+          db.notifications.push({ id: newId(), user_id: m.user_id, actor_id: S(), community_id: d.community_id, type: 'event_new', post_id: null, comment_id: null, event_id: e.id, created_at: nowIso(), read_at: null }));
+        save();
+      },
       async deleteEvent(id) { const e = db.events.find(x => x.id === id); need(isAdmin(e.community_id)); db.events = db.events.filter(x => x.id !== id); db.rsvps = db.rsvps.filter(r => r.event_id !== id); save(); },
       async toggleRsvp(eid) {
         const i = db.rsvps.findIndex(r => r.event_id === eid && r.user_id === S());
@@ -461,14 +544,24 @@
 
       /* 通知 */
       async unread() {
+        // 已報名、24 小時內開始的活動補一則提醒（和資料庫 gen_event_reminders 相同規則）
+        const soon = Date.now() + 86400000;
+        db.rsvps.filter(r => r.user_id === S()).forEach(r => {
+          const e = db.events.find(x => x.id === r.event_id), t = e && new Date(e.starts_at).getTime();
+          if (!e || t <= Date.now() || t > soon || !isMember(e.community_id)) return;
+          if (db.notifications.some(n => n.user_id === S() && n.event_id === e.id && n.type === 'event_soon')) return;
+          db.notifications.push({ id: newId(), user_id: S(), actor_id: null, community_id: e.community_id, type: 'event_soon', post_id: null, comment_id: null, event_id: e.id, created_at: nowIso(), read_at: null });
+          save();
+        });
         return { notifications: db.notifications.filter(n => n.user_id === S() && !n.read_at).length,
           messages: db.messages.filter(m => m.recipient_id === S() && !m.read_at).length };
       },
       async listNotifications() {
         return db.notifications.filter(n => n.user_id === S()).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 40).map(n => {
-          const a = user(n.actor_id), c = comm(n.community_id), p = db.posts.find(x => x.id === n.post_id), k = db.comments.find(x => x.id === n.comment_id);
+          const a = n.actor_id ? user(n.actor_id) : { name: '', avatar: '' }, c = comm(n.community_id), p = db.posts.find(x => x.id === n.post_id), k = db.comments.find(x => x.id === n.comment_id);
+          const e = n.event_id ? db.events.find(x => x.id === n.event_id) : null;
           return { ...n, actor_name: a.name, actor_avatar: a.avatar || '', community_slug: c?.slug, community_name: c?.name, post_title: p?.title || null,
-            snippet: (k?.body || p?.body || '').slice(0, 80) };
+            snippet: (k?.body || p?.body || '').slice(0, 80), event_title: e?.title || null, event_starts_at: e?.starts_at || null };
         });
       },
       async markNotificationsRead(ids) {
@@ -631,7 +724,8 @@
       async createCommunity(d) { return ok(await sb.from('communities').insert({ ...d, owner_id: me.id }).select().single()); },
       async updateCommunity(cid, patch) { ok(await sb.from('communities').update(patch).eq('id', cid)); },
       async deleteCommunity(cid) { ok(await sb.from('communities').delete().eq('id', cid)); },
-      async join(cid) { return ok(await sb.rpc('join_community', { cid })); },
+      async join(cid, answers) { return ok(await sb.rpc('join_community', { cid, p_answers: answers && answers.length ? answers : null })); },
+      async listAnswers(cid) { return ok(await sb.from('membership_answers').select('*').eq('community_id', cid)); },
       async leave(cid) { ok(await sb.from('memberships').delete().eq('community_id', cid).eq('user_id', me.id)); },
 
       async listCategories(cid) { return ok(await sb.from('categories').select('*').eq('community_id', cid).order('sort')); },
@@ -696,6 +790,14 @@
       async updateCourse(id, patch) { ok(await sb.from('courses').update(patch).eq('id', id)); },
       async createModule(d) { ok(await sb.from('modules').insert(d)); },
       async createLesson(d) { return ok(await sb.from('lessons').insert(d).select().single()); },
+      async deleteCourse(id) { ok(await sb.from('courses').delete().eq('id', id)); },
+      async updateModule(id, patch) { ok(await sb.from('modules').update(patch).eq('id', id)); },
+      async deleteModule(id) { ok(await sb.from('modules').delete().eq('id', id)); },
+      async updateLesson(id, patch) { ok(await sb.from('lessons').update(patch).eq('id', id)); },
+      async deleteLesson(id) { ok(await sb.from('lessons').delete().eq('id', id)); },
+      async reorder(kind, ids) { ok(await sb.rpc('reorder_items', { p_kind: kind, p_ids: ids })); },
+      async courseProgress(cid) { return ok(await sb.rpc('course_progress', { cid })); },
+      async exportMembers(cid) { return ok(await sb.rpc('export_members', { cid })); },
 
       async listEvents(cid) {
         return ok(await sb.from('events').select('*, rsvps(user_id)').eq('community_id', cid).order('starts_at'))

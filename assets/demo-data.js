@@ -36,6 +36,14 @@
       members: [['u01', 'admin', 45], ['u02', 'member', 40], ['u03', 'member', 36], ['u04', 'member', 30],
                 ['u05', 'member', 24], ['u06', 'member', 18], ['u07', 'member', 9], ['u10', 'member', 3]],
       pending: [['u08', 0.3], ['u09', 5]],
+      questions: ['你為什麼想加入這個社群？', '你現在有記帳的習慣嗎？大概多久了？'],
+      answers: {
+        u08: ['朋友推薦的，想學怎麼存到第一桶金', '還沒有，這次想從記帳開始'],
+        u09: ['剛出社會，薪水總是月光', '用 App 記了兩個月，但常常忘記'],
+        u07: ['想搞懂保險跟理財的差別', '每天都有記，快半年了'],
+        u10: ['想開始認真管理自己的錢', '還沒有']
+      },
+      welcome: '嗨 {名字}，歡迎加入{社群}！🎉\n\n建議你先做這三件事：\n1. 到「課程」看第一堂〈為什麼要記帳〉\n2. 在「成果分享」貼出你這週的支出分類\n3. 報名週四晚上的直播 Q&A\n\n有任何問題直接回覆這則訊息就可以。',
       bonus: { ME: 22, u01: 71, u05: 30, u02: 9, u04: 15, u03: 4 },
       posts: [
         { k: 'p1', by: 'ME', cat: '公告', d: 14, pin: true, likes: 8, title: '歡迎加入！先從這三件事開始',
@@ -84,7 +92,14 @@
         { title: '被動收入系統', description: '把現金流變成可以自己運轉的系統。', unlock: 5, modules: [
           { title: '第一章　系統思維', drip: 0, lessons: [['從主動收入到系統收入', '收入的四種型態與轉換路徑。']] }] }
       ],
-      progress: [['ME', 0, 0, 0, 10], ['ME', 0, 0, 1, 8]],
+      progress: [['ME', 0, 0, 0, 10], ['ME', 0, 0, 1, 8],
+        ['u01', 0, 0, 0, 40], ['u01', 0, 0, 1, 38], ['u01', 0, 1, 0, 30], ['u01', 0, 1, 1, 25], ['u01', 0, 1, 2, 20], ['u01', 1, 0, 0, 12], ['u01', 1, 0, 1, 6],
+        ['u02', 0, 0, 0, 35], ['u02', 0, 0, 1, 30], ['u02', 0, 1, 0, 2],
+        ['u03', 0, 0, 0, 20],
+        ['u04', 0, 0, 0, 25], ['u04', 0, 0, 1, 24], ['u04', 0, 1, 0, 18], ['u04', 0, 1, 1, 9],
+        ['u05', 0, 0, 0, 22], ['u05', 0, 0, 1, 21], ['u05', 0, 1, 0, 15], ['u05', 0, 1, 1, 14], ['u05', 0, 1, 2, 5], ['u05', 1, 0, 0, 1],
+        ['u06', 0, 0, 0, 16], ['u06', 0, 0, 1, 11],
+        ['u07', 0, 0, 0, 3]],
       events: [
         { title: '每週直播 Q&A', description: '本週主題：保本工具與定存的差異。會前可以先在「提問」分類留問題。', day: 1, at: '20:30', min: 60, url: 'https://meet.google.com/', rsvp: 5 },
         { title: '現金流三張表工作坊', description: '帶著你上個月的記帳資料，現場一起完成三張表。', day: 9, at: '14:00', min: 120, url: '', rsvp: 4 },
@@ -204,14 +219,19 @@
     const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
     const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const out = { users, communities: [], memberships: [], categories: [], posts: [], comments: [], likes: [], point_events: [],
-      courses: [], modules: [], lessons: [], progress: [], events: [], rsvps: [], reports: [], platform_admins: ['ME'] };
+      courses: [], modules: [], lessons: [], progress: [], events: [], rsvps: [], reports: [], answers: [], platform_admins: ['ME'] };
     const r1 = n => Math.round(n * 100) / 100;
 
     for (const c of communities) {
       const cid = c.key;
       out.communities.push({ id: cid, slug: c.slug, name: c.name, tagline: c.tagline, description: c.description,
         category: c.category, theme_color: c.theme, is_private: c.is_private, featured: c.featured, status: 'active',
-        owner_id: c.owner, hoursAgo: c.days * D, level_names: c.levels, price_monthly: 0 });
+        owner_id: c.owner, hoursAgo: c.days * D, level_names: c.levels, price_monthly: 0,
+        join_questions: c.questions || [], welcome_message: c.welcome || '' });
+      Object.entries(c.answers || {}).forEach(([u, a]) => {
+        const m = [...c.members, ...c.pending.map(([pu, d]) => [pu, 'member', d])].find(x => x[0] === u);
+        out.answers.push({ community_id: cid, user_id: u, answers: (c.questions || []).map((q, i) => ({ q, a: a[i] })), hoursAgo: Math.round((m ? m[2] : 1) * D * 10) / 10 });
+      });
       const active = [[c.owner, 'owner', c.days], ...c.members];
       active.forEach(([u, role, days]) => out.memberships.push({ community_id: cid, user_id: u, role, status: 'active', joined_hoursAgo: days * D, points: 0 }));
       c.pending.forEach(([u, days]) => out.memberships.push({ community_id: cid, user_id: u, role: 'member', status: 'pending', joined_hoursAgo: days * D, points: 0 }));
